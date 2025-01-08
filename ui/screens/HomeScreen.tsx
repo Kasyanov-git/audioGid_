@@ -6,17 +6,14 @@ function HomeScreen(): React.JSX.Element {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.textContainer}>
-        <Text style={styles.textStyle}>Hello, World!</Text>
-      </View>
       <View style={styles.mapComponent}>
         <Map />
       </View>
-      <View style={styles.buttonContainer}>
+      {/* <View style={styles.buttonContainer}>
         <Pressable style={styles.button}>
           <Text style={styles.buttonText}>GO!</Text>
         </Pressable>
-      </View>
+      </View> */}
     </SafeAreaView>
   );
 }

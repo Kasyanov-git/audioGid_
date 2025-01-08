@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, PermissionsAndroid, Platform, View, SafeAreaView, Text } from 'react-native';
+import { StyleSheet, PermissionsAndroid, Platform, View, SafeAreaView, Text, Image } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { YaMap, Marker } from 'react-native-yamap';
 
@@ -61,6 +61,9 @@ function Map(): React.JSX.Element {
     <View style={styles.mapContainer}>
       <YaMap
         showUserPosition={true}
+        userLocationIcon={require('../../assets/images/geoposition.png')}
+        scrollGesturesEnabled={true}
+        zoomGesturesEnabled={true}
         rotateGesturesEnabled={false}
         nightMode={false}
         initialRegion={{
@@ -77,7 +80,12 @@ function Map(): React.JSX.Element {
               lat: currentPosition.lat,
               lon: currentPosition.lon,
             }}
-            scale={8}
+            children={
+              <Image
+              source={require('../../assets/images/geoposition.png')}
+              style={styles.marker}
+            />
+            }
           />
         )}
       </YaMap>
@@ -96,6 +104,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  marker: {
+    width: 40,
+    height: 40,
   },
 });
 

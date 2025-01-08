@@ -5,9 +5,10 @@ const defaultUser = { email: 'user@example.com', password: 'password123' };
 
 interface AuthLoginScreenProps {
     onLogin?: () => void;
+    navigation?: any;
   }
 
-const AuthLoginScreen: React.FC<AuthLoginScreenProps> = ({ onLogin }) => {
+const AuthLoginScreen: React.FC<AuthLoginScreenProps> = ({ onLogin, navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -50,18 +51,6 @@ const AuthLoginScreen: React.FC<AuthLoginScreenProps> = ({ onLogin }) => {
         onChangeText={setPassword}
         secureTextEntry
       />
-      {/* <Pressable
-        style={({ pressed }) => [
-          styles.button,
-          pressed && { opacity: 0.7 },
-          loading && { backgroundColor: '#aaa' },
-        ]}
-        onPress={!loading ? loginFunc : undefined}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? 'Загрузка...' : 'Войти'}
-        </Text>
-      </Pressable> */}
       <Pressable
         style={({ pressed }) => [
           styles.button,
@@ -75,9 +64,12 @@ const AuthLoginScreen: React.FC<AuthLoginScreenProps> = ({ onLogin }) => {
           <Text style={styles.buttonText}>Войти</Text>
         )}
       </Pressable>
+      <Pressable style={styles.buttonRegister}>
+        <Text style={styles.registerText} onPress={() => navigation.navigate('AuthRegister')}>Зарегистрироваться</Text>
+      </Pressable>
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -102,10 +94,21 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
+    marginBottom: 15,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
+  },
+  registerText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  buttonRegister: {
+    backgroundColor: 'red',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
   },
 });
 
