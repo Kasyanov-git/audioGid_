@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, PermissionsAndroid, Platform, View, SafeAreaView, Text } from 'react-native';
-import Geolocation, { watchPosition } from 'react-native-geolocation-service';
-import  { YaMap, Marker,Geocoder,Search } from 'react-native-yamap';
-import axios from 'axios'
-
+import { StyleSheet, PermissionsAndroid, Platform, View, SafeAreaView, Text, Image } from 'react-native';
+import Geolocation from 'react-native-geolocation-service';
+import { YaMap, Marker } from 'react-native-yamap';
+import axios from 'axios';
 YaMap.init('b8022cf4-d327-4c28-aa94-7174b69d808f');
-Geocoder.init('500f7015-58c8-477a-aa0c-556ea02c2d9e');
+
 
 function Map(): React.JSX.Element {
   const [currentPosition, setCurrentPosition] = useState<{ lat: number; lon: number } | null>(null);
@@ -65,15 +64,7 @@ function Map(): React.JSX.Element {
           console.error(error);
         }
       };
-  const getGeoCoder= async ()=>{
-    console.log(currentPosition)
-    if(currentPosition!=null){
-      console.log("xui1")
-      console.log(await Geocoder.geoToAddress({lat: 46.263531, lon: 33.529214}))
-      console.log(await Search.searchText("Москва"))
-    }
-      
-  }
+  
   if (!currentPosition) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -86,6 +77,9 @@ function Map(): React.JSX.Element {
     <View style={styles.mapContainer}>
       <YaMap
         showUserPosition={true}
+        userLocationIcon={require('../../assets/images/geoposition.png')}
+        scrollGesturesEnabled={true}
+        zoomGesturesEnabled={true}
         rotateGesturesEnabled={false}
         nightMode={false}
         initialRegion={{
@@ -103,7 +97,12 @@ function Map(): React.JSX.Element {
               lat: currentPosition.lat,
               lon: currentPosition.lon,
             }}
-            scale={8}
+            children={
+              <Image
+              source={require('../../assets/images/geoposition.png')}
+              style={styles.marker}
+            />
+            }
           />
         )}
       </YaMap>
@@ -122,6 +121,10 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  marker: {
+    width: 40,
+    height: 40,
   },
 });
 
