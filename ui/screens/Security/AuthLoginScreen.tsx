@@ -9,8 +9,8 @@ interface AuthLoginScreenProps {
   }
 
 const AuthLoginScreen: React.FC<AuthLoginScreenProps> = ({ onLogin, navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(defaultUser.email);
+  const [password, setPassword] = useState(defaultUser.password);
 
   const [loading, setLoading] = useState(false);
   const loginFunc = () => {
