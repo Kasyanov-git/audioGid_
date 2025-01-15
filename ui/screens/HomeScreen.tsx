@@ -23,13 +23,16 @@ function HomeScreen(): React.JSX.Element {
         { type: GeoFigureType.POINT, value: {lat: 59.9537667, lon: 30.4121783}},
         { disableSpellingCorrection: true, geometry: true },
       );
+      console.log(searchResult);
       const response = await fetch('http://localhost:5555/ask', {  //ЗДЕСЬ МОЖНО ПОМЕНЯТЬ IP СЕРВЕРА
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         
-        body: searchResult,
+        body: JSON.stringify({
+          searchResult,
+        }),
       });
 
       if (!response.ok) {
@@ -38,7 +41,15 @@ function HomeScreen(): React.JSX.Element {
 
       const data = await response.json();
       setResponseText(data);
-      console.log(responseText)
+  
+      console.log('Ответ от сервера:', data);
+
+      if (data.message) {
+        setResponseText(data.message);
+        setIsVisible(true);
+      } else {
+        throw new Error('Ответ не содержит поля "message"');
+      }
     } catch (error) {
       console.error('Ошибка при запросе:', error);
       Alert.alert('Ошибка', 'Не удалось получить рассказ');
@@ -73,8 +84,7 @@ function HomeScreen(): React.JSX.Element {
 
       const data = await response.json();
       setResponseText(data);
-      console.log(responseText)
-
+  
       console.log('Ответ от сервера:', data);
 
       if (data.message) {
