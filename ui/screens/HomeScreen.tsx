@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Map from '../components/Map';
 
 function HomeScreen(): React.JSX.Element {
 
   const [responseText, setResponseText] = useState('');
+  const [preferences, setPreferences] = useState('');
+  const [location, setLocation] = useState('');
 
   const handlePress = async () => {
     try {
@@ -14,8 +16,8 @@ function HomeScreen(): React.JSX.Element {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          preferences: 'bridges, architecture, memorials',
-          location: 'Red Square, Moscow',
+          preferences,
+          location,
         }),
       });
 
@@ -28,7 +30,7 @@ function HomeScreen(): React.JSX.Element {
       console.log('Ответ от сервера:', data);
 
       if (data.message) {
-        setResponseText(data.message); // Устанавливаем только строку из поля message
+        setResponseText(data.message);
       } else {
         throw new Error('Ответ не содержит поля "message"');
       }
@@ -42,6 +44,20 @@ function HomeScreen(): React.JSX.Element {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.mapComponent}>
         <Map />
+      </View>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Введите предпочтения"
+          value={preferences}
+          onChangeText={setPreferences}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Введите местоположение"
+          value={location}
+          onChangeText={setLocation}
+        />
       </View>
       <View style={styles.responseContainer}>
         <Text style={styles.responseText}>{responseText}</Text>
@@ -63,6 +79,25 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#FFFFFF',
+  },
+  inputContainer: {
+    position: 'absolute',
+    zIndex: 1,
+    bottom: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    padding: 10,
+    borderRadius: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: 'gray',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    backgroundColor: '#FFF',
+    fontSize: 16,
   },
   responseContainer: {
     position: 'absolute',
