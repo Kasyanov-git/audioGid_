@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Alert, PixelRatio, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+
+import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Map from '../components/Map';
 import { Search,Suggest  } from 'react-native-yamap';
 import { GeoFigureType } from 'react-native-yamap/build/Search';
@@ -44,17 +45,25 @@ function HomeScreen(): React.JSX.Element {
     }
   };
   
+  const [preferences, setPreferences] = useState('');
+  const [location, setLocation] = useState('');
+  const [isVisible, setIsVisible] = useState(false);
+
+  // if (!isVisible) {
+  //   return null;
+  // }
+
   const handlePress = async () => {
     try {
-      const response = await fetch('http://localhost:5555/ask', {  //ЗДЕСЬ МОЖНО ПОМЕНЯТЬ IP СЕРВЕРА
+      const response = await fetch('http://10.0.2.2:8000/ask', {  //ЗДЕСЬ МОЖНО ПОМЕНЯТЬ IP СЕРВЕРА
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         
         body: JSON.stringify({
-          preferences: 'bridges, architecture, memorials',
-          location: 'Red Square, Moscow',
+          preferences,
+          location,
         }),
       });
 
@@ -65,6 +74,15 @@ function HomeScreen(): React.JSX.Element {
       const data = await response.json();
       setResponseText(data);
       console.log(responseText)
+
+      console.log('Ответ от сервера:', data);
+
+      if (data.message) {
+        setResponseText(data.message);
+        setIsVisible(true);
+      } else {
+        throw new Error('Ответ не содержит поля "message"');
+      }
     } catch (error) {
       console.error('Ошибка при запросе:', error);
       Alert.alert('Ошибка', 'Не удалось получить рассказ');
@@ -75,9 +93,28 @@ function HomeScreen(): React.JSX.Element {
       <View style={styles.mapComponent}>
         <Map />
       </View>
-      <View style={styles.responseContainer}>
-        <Text style={styles.responseText}>{responseText}</Text>
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder="Введите предпочтения"
+          value={preferences}
+          onChangeText={setPreferences}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Введите местоположение"
+          value={location}
+          onChangeText={setLocation}
+        />
       </View>
+      {isVisible && (
+        <View style={styles.responseContainer}>
+          <TouchableOpacity style={styles.closeButton} onPress={() => setIsVisible(false)}>
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.responseText}>{responseText}</Text>
+        </View>
+      )}
       <View style={styles.buttonContainer}>
         <Pressable style={styles.button} onPress={handlePress}>
           <Text style={styles.buttonText}>Начать рассказ</Text>
@@ -99,6 +136,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  inputContainer: {
+    position: 'absolute',
+    zIndex: 1,
+    bottom: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    padding: 10,
+    borderRadius: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: 'gray',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    backgroundColor: '#FFF',
+    fontSize: 16,
+  },
   responseContainer: {
     position: 'absolute',
     zIndex: 1,
@@ -113,9 +169,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'black',
   },
+  closeButton: {
+    position: 'absolute',
+    zIndex: 2,
+    right: 8,
+    top: 2,
+    padding: 8,
+  },
+  closeButtonText: {
+    fontSize: 16,
+    color: '#000',
+  },
   mapComponent: {
     flex: 1,
-    // position: 'absolute',
   },
   buttonContainer: {
     position: 'absolute',
