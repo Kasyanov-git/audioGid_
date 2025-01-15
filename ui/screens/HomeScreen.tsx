@@ -8,7 +8,7 @@ function HomeScreen(): React.JSX.Element {
 
   const handlePress = async () => {
     try {
-      const response = await fetch('http://localhost:5555/ask', {  //ЗДЕСЬ МОЖНО ПОМЕНЯТЬ IP СЕРВЕРА
+      const response = await fetch('http://10.0.2.2:8000/ask', {  //ЗДЕСЬ МОЖНО ПОМЕНЯТЬ IP СЕРВЕРА
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -24,7 +24,14 @@ function HomeScreen(): React.JSX.Element {
       }
 
       const data = await response.json();
-      setResponseText(data);
+
+      console.log('Ответ от сервера:', data);
+
+      if (data.message) {
+        setResponseText(data.message); // Устанавливаем только строку из поля message
+      } else {
+        throw new Error('Ответ не содержит поля "message"');
+      }
     } catch (error) {
       console.error('Ошибка при запросе:', error);
       Alert.alert('Ошибка', 'Не удалось получить рассказ');
