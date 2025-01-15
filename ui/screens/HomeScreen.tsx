@@ -1,11 +1,49 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Alert, PixelRatio, Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 import Map from '../components/Map';
+import { Search,Suggest  } from 'react-native-yamap';
+import { GeoFigureType } from 'react-native-yamap/build/Search';
 
 function HomeScreen(): React.JSX.Element {
 
   const [responseText, setResponseText] = useState('');
+  // Тестовая функция для саджеста(выводит очень далеко, посмотреть настрйоку)
+  const find = async (query: string) => {
+    console.log(query);
+    const suggestions = await Suggest.suggest(query,{userPosition: {lat: 59.9537667, lon: 30.4121783}});
+    console.log(suggestions)
+    Suggest.reset();
+  }
+  const handlePressTest = async () => {
+    try {
+      //Поиск по тексту(ищет как раз метки в близи)
+      const searchResult = await Search.searchText(
+        'Памятники',
+        { type: GeoFigureType.POINT, value: {lat: 59.9537667, lon: 30.4121783}},
+        { disableSpellingCorrection: true, geometry: true },
+      );
+      const response = await fetch('http://localhost:5555/ask', {  //ЗДЕСЬ МОЖНО ПОМЕНЯТЬ IP СЕРВЕРА
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        
+        body: searchResult,
+      });
 
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setResponseText(data);
+      console.log(responseText)
+    } catch (error) {
+      console.error('Ошибка при запросе:', error);
+      Alert.alert('Ошибка', 'Не удалось получить рассказ');
+    }
+  };
+  
   const handlePress = async () => {
     try {
       const response = await fetch('http://localhost:5555/ask', {  //ЗДЕСЬ МОЖНО ПОМЕНЯТЬ IP СЕРВЕРА
@@ -13,6 +51,7 @@ function HomeScreen(): React.JSX.Element {
         headers: {
           'Content-Type': 'application/json',
         },
+        
         body: JSON.stringify({
           preferences: 'bridges, architecture, memorials',
           location: 'Red Square, Moscow',
@@ -25,12 +64,12 @@ function HomeScreen(): React.JSX.Element {
 
       const data = await response.json();
       setResponseText(data);
+      console.log(responseText)
     } catch (error) {
       console.error('Ошибка при запросе:', error);
       Alert.alert('Ошибка', 'Не удалось получить рассказ');
     }
   };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.mapComponent}>
@@ -42,6 +81,9 @@ function HomeScreen(): React.JSX.Element {
       <View style={styles.buttonContainer}>
         <Pressable style={styles.button} onPress={handlePress}>
           <Text style={styles.buttonText}>Начать рассказ</Text>
+        </Pressable>
+        <Pressable style={styles.button} onPress={handlePressTest}>
+          <Text style={styles.buttonText}>Тест</Text>
         </Pressable>
       </View>
     </SafeAreaView>

@@ -25,8 +25,8 @@ function Map(): React.JSX.Element {
           buttonPositive: 'ОК',
         }
       );
-      // getGeoCoder()
-      searchOrganizations()
+  
+      // searchOrganizations()
       console.log('Разрешение на геолокацию:', granted);
       if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
         console.warn('Доступ к геолокации отклонён');
@@ -54,18 +54,17 @@ function Map(): React.JSX.Element {
       }
     );
   };
-  const searchOrganizations = async () => {
-        try {
-          console.log("xui");
-          const response = await axios.get(`https://search-maps.yandex.ru/v1/?text=%D0%9F%D0%B0%D0%BC%D1%8F%D1%82%D0%BD%D0%B8%D0%BA%D0%B8&type=biz&lang=en_US&results=1&apikey=4a35a38e-ba40-4ca1-932a-357b7b3c1ddb`);
-          console.log("nexui");
-          console.log(response.data.features);
-        } catch (error) {
-          console.error(error);
-        }
-      };
+  // const searchOrganizations = async () => {
+  //       try {
+  //         const response = await axios.get(`https://search-maps.yandex.ru/v1/?text=%D0%9F%D0%B0%D0%BC%D1%8F%D1%82%D0%BD%D0%B8%D0%BA%D0%B8&type=biz&lang=en_US&results=1&apikey=4a35a38e-ba40-4ca1-932a-357b7b3c1ddb`);
+  //         console.log(response.data.features);
+  //       } catch (error) {
+  //         console.error(error);
+  //       }
+  //     };
   
   if (!currentPosition) {
+    console.log(currentPosition);
     return (
       <SafeAreaView style={styles.safeArea}>
         <Text>Loading...</Text>
