@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Map from '../components/Map';
 
 function HomeScreen(): React.JSX.Element {
@@ -7,6 +7,11 @@ function HomeScreen(): React.JSX.Element {
   const [responseText, setResponseText] = useState('');
   const [preferences, setPreferences] = useState('');
   const [location, setLocation] = useState('');
+  const [isVisible, setIsVisible] = useState(false);
+
+  // if (!isVisible) {
+  //   return null;
+  // }
 
   const handlePress = async () => {
     try {
@@ -31,6 +36,7 @@ function HomeScreen(): React.JSX.Element {
 
       if (data.message) {
         setResponseText(data.message);
+        setIsVisible(true);
       } else {
         throw new Error('Ответ не содержит поля "message"');
       }
@@ -59,9 +65,14 @@ function HomeScreen(): React.JSX.Element {
           onChangeText={setLocation}
         />
       </View>
-      <View style={styles.responseContainer}>
-        <Text style={styles.responseText}>{responseText}</Text>
-      </View>
+      {isVisible && (
+        <View style={styles.responseContainer}>
+          <TouchableOpacity style={styles.closeButton} onPress={() => setIsVisible(false)}>
+            <Text style={styles.closeButtonText}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.responseText}>{responseText}</Text>
+        </View>
+      )}
       <View style={styles.buttonContainer}>
         <Pressable style={styles.button} onPress={handlePress}>
           <Text style={styles.buttonText}>Начать рассказ</Text>
@@ -113,9 +124,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: 'black',
   },
+  closeButton: {
+    position: 'absolute',
+    zIndex: 2,
+    right: 8,
+    top: 2,
+    padding: 8,
+  },
+  closeButtonText: {
+    fontSize: 16,
+    color: '#000',
+  },
   mapComponent: {
     flex: 1,
-    // position: 'absolute',
   },
   buttonContainer: {
     position: 'absolute',
