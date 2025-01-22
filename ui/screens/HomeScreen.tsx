@@ -9,12 +9,12 @@ function HomeScreen(): React.JSX.Element {
 
   const [responseText, setResponseText] = useState('');
   // Тестовая функция для саджеста(выводит очень далеко, посмотреть настрйоку)
-  const find = async (query: string) => {
-    console.log(query);
-    const suggestions = await Suggest.suggest(query,{userPosition: {lat: 59.9537667, lon: 30.4121783}});
-    console.log(suggestions)
-    Suggest.reset();
-  }
+  // const find = async (query: string) => {
+  //   console.log(query);
+  //   const suggestions = await Suggest.suggest(query,{userPosition: {lat: 59.9537667, lon: 30.4121783}});
+  //   console.log(suggestions)
+  //   Suggest.reset();
+  // };
   const handlePressTest = async () => {
     try {
       //Поиск по тексту(ищет как раз метки в близи)
@@ -29,7 +29,7 @@ function HomeScreen(): React.JSX.Element {
         headers: {
           'Content-Type': 'application/json',
         },
-        
+
         body: JSON.stringify({
           searchResult,
         }),
@@ -41,7 +41,7 @@ function HomeScreen(): React.JSX.Element {
 
       const data = await response.json();
       setResponseText(data);
-  
+
       console.log('Ответ от сервера:', data);
 
       if (data.message) {
@@ -55,14 +55,10 @@ function HomeScreen(): React.JSX.Element {
       Alert.alert('Ошибка', 'Не удалось получить рассказ');
     }
   };
-  
+
   const [preferences, setPreferences] = useState('');
   const [location, setLocation] = useState('');
   const [isVisible, setIsVisible] = useState(false);
-
-  // if (!isVisible) {
-  //   return null;
-  // }
 
   const handlePress = async () => {
     try {
@@ -71,7 +67,7 @@ function HomeScreen(): React.JSX.Element {
         headers: {
           'Content-Type': 'application/json',
         },
-        
+
         body: JSON.stringify({
           preferences,
           location,
@@ -84,7 +80,7 @@ function HomeScreen(): React.JSX.Element {
 
       const data = await response.json();
       setResponseText(data);
-  
+
       console.log('Ответ от сервера:', data);
 
       if (data.message) {
@@ -129,8 +125,10 @@ function HomeScreen(): React.JSX.Element {
         <Pressable style={styles.button} onPress={handlePress}>
           <Text style={styles.buttonText}>Начать рассказ</Text>
         </Pressable>
-        <Pressable style={styles.button} onPress={handlePressTest}>
-          <Text style={styles.buttonText}>Тест</Text>
+      </View>
+      <View style={styles.buttonTestContainer}>
+        <Pressable style={styles.buttonTest} onPress={handlePressTest}>
+          <Text style={styles.buttonTestText}>Тест</Text>
         </Pressable>
       </View>
     </SafeAreaView>
@@ -149,7 +147,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     position: 'absolute',
     zIndex: 1,
-    bottom: 100,
+    bottom: 160,
     left: 20,
     right: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -211,6 +209,28 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   buttonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  buttonTestContainer: {
+    position: 'absolute',
+    zIndex: 1,
+    bottom: 82,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    alignItems: 'center',
+    width: '100%',
+  },
+  buttonTest: {
+    borderRadius: 16,
+    backgroundColor: 'orange',
+    padding: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  buttonTestText: {
     color: '#FFFFFF',
     fontSize: 18,
     fontWeight: 'bold',
