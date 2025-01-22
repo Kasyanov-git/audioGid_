@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
-import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Keyboard,
+  TouchableWithoutFeedback, } from 'react-native';
 import Map from '../components/Map';
 import { Search,Suggest  } from 'react-native-yamap';
 import { GeoFigureType } from 'react-native-yamap/build/Search';
@@ -96,46 +97,53 @@ function HomeScreen(): React.JSX.Element {
   };
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.mapComponent}>
-        <Map />
-      </View>
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Введите предпочтения"
-          value={preferences}
-          onChangeText={setPreferences}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Введите местоположение"
-          value={location}
-          onChangeText={setLocation}
-        />
-      </View>
-      {isVisible && (
-        <View style={styles.responseContainer}>
-          <TouchableOpacity style={styles.closeButton} onPress={() => setIsVisible(false)}>
-            <Text style={styles.closeButtonText}>✕</Text>
-          </TouchableOpacity>
-          <Text style={styles.responseText}>{responseText}</Text>
-        </View>
-      )}
-      <View style={styles.buttonContainer}>
-        <Pressable style={styles.button} onPress={handlePress}>
-          <Text style={styles.buttonText}>Начать рассказ</Text>
-        </Pressable>
-      </View>
-      <View style={styles.buttonTestContainer}>
-        <Pressable style={styles.buttonTest} onPress={handlePressTest}>
-          <Text style={styles.buttonTestText}>Тест</Text>
-        </Pressable>
-      </View>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView style={styles.container}>
+          <View style={styles.mapComponent}>
+            <Map />
+          </View>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Введите предпочтения"
+              value={preferences}
+              onChangeText={setPreferences}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Введите местоположение"
+              value={location}
+              onChangeText={setLocation}
+            />
+          </View>
+          {isVisible && (
+            <View style={styles.responseContainer}>
+              <TouchableOpacity style={styles.closeButton} onPress={() => setIsVisible(false)}>
+                <Text style={styles.closeButtonText}>✕</Text>
+              </TouchableOpacity>
+              <Text style={styles.responseText}>{responseText}</Text>
+            </View>
+          )}
+          <View style={styles.buttonContainer}>
+            <Pressable style={styles.button} onPress={handlePress}>
+              <Text style={styles.buttonText}>Начать рассказ</Text>
+            </Pressable>
+          </View>
+          <View style={styles.buttonTestContainer}>
+            <Pressable style={styles.buttonTest} onPress={handlePressTest}>
+              <Text style={styles.buttonTestText}>Тест</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
   textStyle: {
     fontSize: 26,
     color: 'black',

@@ -47,7 +47,10 @@ const MyTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
 };
 
 export const MainApp = () => (
-  <Tab.Navigator tabBar={(props) => <MyTabBar {...props} />}>
+  <Tab.Navigator
+    tabBar={(props) => <MyTabBar {...props} />}
+    screenOptions={{ headerShown: false }}
+    >
     <Tab.Screen name="Home" component={HomeScreen} />
     <Tab.Screen name="Map" component={MapScreen} />
     <Tab.Screen name="Navigator" component={NavigatorScreen} />
