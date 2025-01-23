@@ -1,0 +1,15 @@
+export const theme = {
+    colors: {
+      primary: '#007bff',
+      secondary: '#6c757d',
+      background: '#F4F4F4',
+      text: '#2B2B2B',
+      text2: '#757575',
+      text3: 'red',
+      error: '#dc3545',
+    },
+    fonts: {
+      regular: 'Roboto-Regular',
+      bold: 'Roboto-Bold',
+    },
+  };
