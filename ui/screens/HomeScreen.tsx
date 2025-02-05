@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 import { Alert, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Keyboard,
-  TouchableWithoutFeedback } from 'react-native';
+  TouchableWithoutFeedback, PanResponder, Animated } from 'react-native';
 import Map from '../components/Map';
 // import { Search, Suggest  } from 'react-native-yamap';
 // import { GeoFigureType } from 'react-native-yamap/build/Search';
@@ -10,13 +10,22 @@ import Settings from '../../assets/images/icons/settings.svg';
 import Previous from '../../assets/images/icons/previous.svg';
 import Minus15 from '../../assets/images/icons/minus15.svg';
 import Play from '../../assets/images/icons/play.svg';
+import PlayWhite from '../../assets/images/icons/play-white.svg';
 import Plus15 from '../../assets/images/icons/plus15.svg';
 import Next from '../../assets/images/icons/next.svg';
 import Like from '../../assets/images/icons/like.svg';
 import Line from '../../assets/images/icons/line.svg';
 import Pause from '../../assets/images/icons/pause.svg';
+import PauseWhite from '../../assets/images/icons/pause-white.svg';
+import Download from '../../assets/images/icons/download.svg';
+import ShowText from '../../assets/images/icons/text-btn.svg';
+import VolumeOn from '../../assets/images/icons/volume_on.svg';
+import VolumeOff from '../../assets/images/icons/volume_off.svg';
 import { VolumeManager } from 'react-native-volume-manager';
 import Slider from '@react-native-community/slider';
+import LinearGradient from 'react-native-linear-gradient';
+import Sound from 'react-native-sound';
+
 
 function HomeScreen(): React.JSX.Element {
 
@@ -26,7 +35,13 @@ function HomeScreen(): React.JSX.Element {
   const [isVisible, setIsVisible] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState<number>(0);
-
+  const [containerHeight, setContainerHeight] = useState<number | 'auto'>('auto');
+  const [isExpanded, setIsExpanded] = useState(false);
+  const soundRef = useRef<Sound | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(1);
+  const [previousVolume, setPreviousVolume] = useState<number>(volume);
 
   useEffect(() => {
     const setupVolumeManager = async () => {
@@ -41,9 +56,29 @@ function HomeScreen(): React.JSX.Element {
     setupVolumeManager();
   }, []);
 
+  useEffect(() => {
+    soundRef.current = new Sound('audio.mp3', Sound.MAIN_BUNDLE, (error) => {
+      if (error) {
+        console.error('Ошибка загрузки аудиофайла:', error);
+        return;
+      }
+      if (soundRef.current) {
+        setDuration(soundRef.current.getDuration());
+      }
+    });
+
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.release();
+        soundRef.current = null;
+      }
+    };
+  }, []);
+
   const handlePress = async () => {
     try {
-      const response = await fetch('http://10.0.2.2:8000/ask', {
+      const response = await fetch('https://1a7abba2-5e02-4f1b-9515-c139f8bd007b.tunnel4.com/api/ask', {
+      // const response = await fetch('http://10.0.2.2:8000/ask', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -77,8 +112,8 @@ function HomeScreen(): React.JSX.Element {
     if (!isPlaying) {
       handlePress();
     }
-    setIsPlaying(prevState => !prevState);
-    setIsVisible(false);
+    // setIsPlaying(prevState => !prevState);
+    // setIsVisible(false);
   };
 
   const closeAction = () => {
@@ -91,85 +126,285 @@ function HomeScreen(): React.JSX.Element {
     VolumeManager.setVolume(newVolume);
   };
 
+  // const pan = useRef(new Animated.Value(0)).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gestureState) => {
+        const newHeight = Math.max(0, -gestureState.dy);
+        setContainerHeight(newHeight);
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy < -100) {
+          setContainerHeight(410);
+          setIsExpanded(true);
+        } else {
+          setContainerHeight(80);
+          // setContainerHeight(240);
+          setIsExpanded(false);
+        }
+      },
+    })
+  ).current;
+
+  const playAudio = () => {
+    if (soundRef.current && !isPlaying) {
+      soundRef.current.play((success) => {
+        if (success) {
+          console.log('Аудио успешно воспроизведено');
+          setIsPlaying(false);
+        } else {
+          console.error('Ошибка воспроизведения аудио');
+        }
+      });
+      // setIsPlaying(true);
+      setIsPlaying(prevState => !prevState);
+      setIsVisible(false);
+
+      intervalRef.current = setInterval(() => {
+        soundRef.current?.getCurrentTime((seconds) => {
+          setCurrentTime(seconds);
+        });
+      }, 100);
+    }
+  };
+
+  const pauseAudio = () => {
+    if (soundRef.current) {
+      soundRef.current.pause();
+      setIsPlaying(false);
+    }
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  };
+
+  const playPauseAudio = () => {
+    if (isPlaying) {
+      pauseAudio();
+    } else {
+      playAudio();
+    }
+  };
+
+  const seekAudio = (value: number) => {
+    if (soundRef.current) {
+      soundRef.current.setCurrentTime(value);
+      setCurrentTime(value);
+    }
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+
+  const forward15 = () => {
+    if (soundRef.current) {
+      soundRef.current.getCurrentTime((currentTime) => {
+        const newTime = Math.min(currentTime + 15, duration);
+        soundRef.current?.setCurrentTime(newTime);
+        setCurrentTime(newTime);
+      });
+    }
+  };
+
+  const backward15 = () => {
+    if (soundRef.current) {
+      soundRef.current.getCurrentTime((currentTime) => {
+        const newTime = Math.max(currentTime - 15, 0);
+        soundRef.current?.setCurrentTime(newTime);
+        setCurrentTime(newTime);
+      });
+    }
+  };
+
+  const moveToStart = () => {
+    if (soundRef.current) {
+      soundRef.current.setCurrentTime(0);
+      setCurrentTime(0);
+    }
+  };
+
+  const moveToEnd = () => {
+    if (soundRef.current) {
+      soundRef.current.setCurrentTime(duration);
+      setCurrentTime(duration);
+    }
+  };
+
+  const muteVolume = async () => {
+    if (volume !== 0) {
+      setPreviousVolume(volume);
+    }
+    setVolume(0);
+    await VolumeManager.setVolume(0);
+  };
+
+  const unmuteVolume = async () => {
+    if (previousVolume !== 0) {
+      setVolume(previousVolume);
+      await VolumeManager.setVolume(previousVolume);
+    } else {
+      const defaultVolume = 0.5;
+      setVolume(defaultVolume);
+      await VolumeManager.setVolume(defaultVolume);
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView style={styles.container}>
-          <View style={styles.mapComponent}>
-            <Map />
-          </View>
-          {isVisible && (
-            <View style={styles.responseContainer}>
-              <TouchableOpacity style={styles.closeButton} onPress={closeAction}>
-                <Text style={styles.closeButtonText}>✕</Text>
-              </TouchableOpacity>
-              <Text style={styles.responseText}>{responseText}</Text>
-            </View>
-          )}
-          <View style={styles.bottomContainer}>
-            <View style={styles.slideElement}>
-              <Line width={24} height={24} color={theme.colors.text} />
-            </View>
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.inputTop}
-                placeholder="Введите предпочтения"
-                value={preferences}
-                onChangeText={setPreferences}
-              />
-              <TextInput
-                style={styles.inputBot}
-                placeholder="Введите местоположение"
-                value={location}
-                onChangeText={setLocation}
-              />
-            </View>
-            <View style={styles.bottomSubContainer}>
-              <View style={styles.bottomSubContainerLeft}>
-                <Settings width={24} height={24} color={theme.colors.text} />
+      <SafeAreaView style={styles.safeArea}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+            <KeyboardAvoidingView style={styles.container}>
+              <View style={styles.mapComponent}>
+                <Map />
               </View>
-              <View style={styles.bottomSubContainerCenter}>
-                <View>
-                  <Previous width={24} height={24} color={isPlaying ? theme.colors.text : theme.colors.text2} />
+              {isVisible && (
+                <View style={styles.responseContainer}>
+                  <TouchableOpacity style={styles.closeButton} onPress={closeAction}>
+                    <Text style={styles.closeButtonText}>✕</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.responseText}>{responseText}</Text>
                 </View>
-                <View>
-                  <Minus15 width={24} height={24} color={isPlaying ? theme.colors.text : theme.colors.text2} />
-                </View>
-                <TouchableOpacity onPress={playPause}>
-                  {isPlaying ? (
-                    <Pause width={24} height={24} color={theme.colors.text} />
-                  ) : (
-                    <Play width={24} height={24} color={theme.colors.text} />
-                  )}
-                </TouchableOpacity>
-                <View>
-                  <Plus15 width={24} height={24} color={isPlaying ? theme.colors.text : theme.colors.text2} />
-                </View>
-                <View>
-                  <Next width={24} height={24} color={isPlaying ? theme.colors.text : theme.colors.text2} />
-                </View>
-              </View>
-              <View style={styles.bottomSubContainerRight}>
-                <Like width={24} height={24} color={isPlaying ? theme.colors.text : theme.colors.text2} />
-              </View>
-            </View>
-            <View style={styles.sliderContainer}>
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={1}
-                value={volume}
-                onValueChange={volumeChange}
-                minimumTrackTintColor="#2196F3"
-                maximumTrackTintColor="#13578D"
-                // thumbTintColor={theme.colors.text}
-                thumbTintColor="#2196F3"
-              />
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      </TouchableWithoutFeedback>
-    </SafeAreaView>
+              )}
+                {isExpanded ? (
+                  <View style={[styles.bottomContainer, { height: containerHeight }]}>
+                    <Animated.View style={styles.swipeElement} {...panResponder.panHandlers}>
+                      <Line width={24} height={24} color={theme.colors.text} />
+                    </Animated.View>
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.inputTop}
+                        placeholder="Введите предпочтения"
+                        value={preferences}
+                        onChangeText={setPreferences}
+                      />
+                      <TextInput
+                        style={styles.inputBot}
+                        placeholder="Введите местоположение"
+                        value={location}
+                        onChangeText={setLocation}
+                      />
+                      <TouchableOpacity onPress={playPause} style={styles.temporaryButton}>
+                          <Text style={styles.temporaryButtonText}>Сгенерировать</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.bottomSubTopContainerExpanded}>
+                      <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+                        <Slider
+                          style={styles.sliderTrack}
+                          minimumValue={0}
+                          maximumValue={duration}
+                          value={currentTime}
+                          onSlidingComplete={seekAudio}
+                          minimumTrackTintColor="#2196F3"
+                          maximumTrackTintColor="#13578D"
+                          thumbImage={require('../../assets/images/icons/thumbImage.png')}
+                        />
+                      <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                    </View>
+                    <View style={styles.bottomSubMidContainerExpanded}>
+                      <TouchableOpacity>
+                        <Previous width={24} height={24} onPress={moveToStart} color={isPlaying ? theme.colors.text : theme.colors.text2} />
+                      </TouchableOpacity>
+                      <TouchableOpacity>
+                        <Minus15 width={24} height={24} onPress={backward15} color={isPlaying ? theme.colors.text : theme.colors.text2} />
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.playPauseButtonSubContainer} onPress={playPauseAudio}>
+                        <LinearGradient colors={['#2196F3', '#13578D']} style={styles.playPauseButtonContainer}>
+                          {isPlaying ? (
+                            <PauseWhite width={24} height={24} color={theme.colors.text} />
+                          ) : (
+                            <PlayWhite width={24} height={24} color={theme.colors.text} />
+                          )}
+                        </LinearGradient>
+                      </TouchableOpacity>
+                      <TouchableOpacity>
+                        <Plus15 width={24} height={24} onPress={forward15} color={isPlaying ? theme.colors.text : theme.colors.text2} />
+                      </TouchableOpacity>
+                      <TouchableOpacity>
+                        <Next width={24} height={24} onPress={moveToEnd} color={isPlaying ? theme.colors.text : theme.colors.text2} />
+                      </TouchableOpacity>
+                      </View>
+                    <View style={styles.bottomSubBotContainerExpanded}>
+                      <View style={styles.bottomSubBotContainerLeftExpanded}>
+                        <TouchableOpacity>
+                          <Like width={24} height={24} color={isPlaying ? theme.colors.text : theme.colors.text2} />
+                        </TouchableOpacity>
+                        <TouchableOpacity>
+                          <Settings width={24} height={24} color={theme.colors.text} />
+                        </TouchableOpacity>
+                      </View>
+                      <View style={styles.bottomSubBotContainerRightExpanded}>
+                        <TouchableOpacity>
+                          <ShowText width={24} height={24} color={theme.colors.text} />
+                        </TouchableOpacity>
+                        <TouchableOpacity>
+                          <Download width={24} height={24} color={isPlaying ? theme.colors.text : theme.colors.text2} />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                    <View style={styles.sliderVolumeContainer}>
+                      <TouchableOpacity>
+                        <VolumeOff width={24} height={24} onPress={muteVolume} color={theme.colors.text} />
+                      </TouchableOpacity>
+                      <Slider
+                        style={styles.sliderVolume}
+                        minimumValue={0}
+                        maximumValue={1}
+                        value={volume}
+                        onValueChange={volumeChange}
+                        minimumTrackTintColor="#2196F3"
+                        maximumTrackTintColor="#13578D"
+                        thumbImage={require('../../assets/images/icons/thumbVolumeImage.png')}
+                      />
+                      <TouchableOpacity>
+                        <VolumeOn width={24} height={24} onPress={unmuteVolume} color={theme.colors.text} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <View style={[styles.bottomContainer, { height: containerHeight }]}>
+                    <Animated.View style={styles.swipeElement} {...panResponder.panHandlers}>
+                      <Line width={24} height={24} color={theme.colors.text} />
+                    </Animated.View>
+                    <View style={styles.bottomSubContainer}>
+                      <TouchableOpacity style={styles.bottomSubContainerLeft}>
+                        <Settings width={24} height={24} color={theme.colors.text} />
+                      </TouchableOpacity>
+                      <View style={styles.bottomSubContainerCenter}>
+                        <TouchableOpacity>
+                          <Previous width={24} height={24} onPress={moveToStart} color={isPlaying ? theme.colors.text : theme.colors.text2} />
+                        </TouchableOpacity>
+                        <TouchableOpacity>
+                          <Minus15 width={24} height={24} onPress={backward15} color={isPlaying ? theme.colors.text : theme.colors.text2} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={playPauseAudio}>
+                          {isPlaying ? (
+                            <Pause width={24} height={24} color={theme.colors.text} />
+                          ) : (
+                            <Play width={24} height={24} color={theme.colors.text} />
+                          )}
+                        </TouchableOpacity>
+                        <TouchableOpacity>
+                          <Plus15 width={24} height={24} onPress={forward15} color={isPlaying ? theme.colors.text : theme.colors.text2} />
+                        </TouchableOpacity>
+                        <TouchableOpacity>
+                          <Next width={24} height={24} onPress={moveToEnd} color={isPlaying ? theme.colors.text : theme.colors.text2} />
+                        </TouchableOpacity>
+                      </View>
+                      <TouchableOpacity style={styles.bottomSubContainerRight}>
+                        <Like width={24} height={24} color={isPlaying ? theme.colors.text : theme.colors.text2} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+            </KeyboardAvoidingView>
+          </TouchableWithoutFeedback>
+      </SafeAreaView>
   );
 }
 
@@ -185,6 +420,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     marginBottom: 20,
     gap: 10,
+    alignItems: 'center',
   },
   inputTop: {
     borderWidth: 1,
@@ -193,6 +429,7 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: '#FFF',
     fontSize: 16,
+    width: '100%',
   },
   inputBot: {
     borderWidth: 1,
@@ -201,6 +438,19 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: '#FFF',
     fontSize: 16,
+    width: '100%',
+  },
+  temporaryButton: {
+    // backgroundColor: '#d24dfa',
+    backgroundColor: '#000',
+    width: 160,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  temporaryButtonText: {
+    color: '#FFF',
   },
   responseContainer: {
     position: 'absolute',
@@ -237,8 +487,13 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+    minHeight: 80,
+    // minHeight: 240,
+    maxHeight: 410,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.text2,
   },
-  slideElement: {
+  swipeElement: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginBottom: 10,
@@ -254,13 +509,67 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   bottomSubContainerRight: {},
-  sliderContainer: {
+  sliderVolumeContainer: {
+    justifyContent: 'space-between',
+    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
+    marginTop: 20,
   },
-  slider: {
-    width: '100%',
+  sliderVolume: {
+    width: 302,
     height: 2,
+  },
+  bottomSubTopContainerExpanded: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  sliderTrack: {
+    flex: 1,
+    height: 1,
+  },
+  timeText: {
+    fontSize: 14,
+    color: '#000',
+    textAlign: 'center',
+  },
+  bottomSubMidContainerExpanded: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingLeft: 13,
+    paddingRight: 13,
+  },
+  playPauseButtonContainer: {
+    width: 76,
+    height: 76,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 100,
+    marginLeft: 12,
+    marginRight: 12,
+  },
+  playPauseButtonSubContainer: {
+    zIndex: 50,
+    alignItems: 'center',
+  },
+  bottomSubBotContainerExpanded: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingLeft: 13,
+    paddingRight: 13,
+    marginTop: 16,
+  },
+  bottomSubBotContainerLeftExpanded: {
+    flexDirection: 'row',
+    gap: 40,
+  },
+  bottomSubBotContainerRightExpanded: {
+    flexDirection: 'row',
+    gap: 40,
   },
 });
 
