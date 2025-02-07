@@ -29,10 +29,9 @@ import Sound from 'react-native-sound';
 
 function HomeScreen(): React.JSX.Element {
 
-  const [responseText, setResponseText] = useState('');
-  const [preferences, setPreferences] = useState('');
-  const [location, setLocation] = useState('');
-  const [isVisible, setIsVisible] = useState(false);
+  // const [responseText, setResponseText] = useState('');
+  // const [question, setQuestion] = useState('');
+  // const [isVisible, setIsVisible] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState<number>(0);
   const [containerHeight, setContainerHeight] = useState<number | 'auto'>('auto');
@@ -42,142 +41,161 @@ function HomeScreen(): React.JSX.Element {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(1);
   const [previousVolume, setPreviousVolume] = useState<number>(volume);
+  // const [sound, setSound] = useState<Sound | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    const setupVolumeManager = async () => {
-      try {
-        const currentVolume = await VolumeManager.getVolume();
-        setVolume(currentVolume.volume || 0);
-      } catch (error) {
-        console.error('Ошибка при получении громкости:', error);
-      }
-    };
+  // useEffect(() => {
+  //   soundRef.current = new Sound('audio.mp3', Sound.MAIN_BUNDLE, (error) => {
+  //     if (error) {
+  //       console.error('Ошибка загрузки аудиофайла:', error);
+  //       return;
+  //     }
+  //     if (soundRef.current) {
+  //       setDuration(soundRef.current.getDuration());
+  //     }
+  //   });
 
-    setupVolumeManager();
-  }, []);
+  //   return () => {
+  //     if (soundRef.current) {
+  //       soundRef.current.release();
+  //       soundRef.current = null;
+  //     }
+  //   };
+  // }, []);
 
-  useEffect(() => {
-    soundRef.current = new Sound('audio.mp3', Sound.MAIN_BUNDLE, (error) => {
-      if (error) {
-        console.error('Ошибка загрузки аудиофайла:', error);
-        return;
-      }
-      if (soundRef.current) {
-        setDuration(soundRef.current.getDuration());
-      }
-    });
+  // const playTestAudioFromApi = async () => {
+  //   try {
+  //     const response = await fetch(
+  //       'https://8744dcae-c929-4338-9b61-aae1b2adb84b.tunnel4.com/api/ask',
+  //       {
+  //         method: 'POST',
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //         },
+  //         body: JSON.stringify({
+  //           question: 'Привет, расскажи мне что-нибудь',
+  //         }),
+  //       }
+  //     );
 
-    return () => {
-      if (soundRef.current) {
-        soundRef.current.release();
-        soundRef.current = null;
-      }
-    };
-  }, []);
+  //     if (!response.ok) {
+  //       throw new Error(`HTTP Error: ${response.status}`);
+  //     }
 
-  const handlePress = async () => {
+  //     const data = await response.json();
+  //     const audioUrl = data.url;
+
+  //     if (!audioUrl) {
+  //       throw new Error('Сервер не вернул ссылку на аудиофайл');
+  //     }
+
+  //     const newSound = new Sound(audioUrl, '', (error) => {
+  //       if (error) {
+  //         console.error(' Ошибка загрузки аудио:', error);
+  //         Alert.alert('Ошибка', 'Не удалось загрузить аудио');
+  //         return;
+  //       }
+
+  //       newSound.play((success) => {
+  //         if (success) {
+  //           console.log('Аудио воспроизведено');
+  //         } else {
+  //           console.error('Ошибка воспроизведения');
+  //         }
+  //       });
+
+  //       setSound(newSound);
+  //     });
+  //   } catch (error) {
+  //     console.error('Ошибка:', error);
+  //     Alert.alert('Ошибка', 'Не удалось получить или воспроизвести аудиофайл');
+  //   }
+  // };
+
+  // const playAudio = () => {
+  //   if (soundRef.current && !isPlaying) {
+  //     soundRef.current.play((success) => {
+  //       if (success) {
+  //         console.log('Аудио успешно воспроизведено');
+  //         setIsPlaying(false);
+  //       } else {
+  //         console.error('Ошибка воспроизведения аудио');
+  //       }
+  //     });
+  //     // setIsPlaying(true);
+  //     setIsPlaying(prevState => !prevState);
+  //     setIsVisible(false);
+
+  //     intervalRef.current = setInterval(() => {
+  //       soundRef.current?.getCurrentTime((seconds) => {
+  //         setCurrentTime(seconds);
+  //       });
+  //     }, 100);
+  //   }
+  // };
+
+  const fetchAudio = async () => {
     try {
-      const response = await fetch('https://1a7abba2-5e02-4f1b-9515-c139f8bd007b.tunnel4.com/api/ask', {
-      // const response = await fetch('http://10.0.2.2:8000/ask', {
+      const response = await fetch('https://e254d0c4-acb0-43df-99dc-49dff02ed044.tunnel4.com/api/ask', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          preferences,
-          location,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: 'Привет, расскажи мне что-нибудь' }),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
 
       const data = await response.json();
-      setResponseText(data);
+      if (!data.url) throw new Error('Сервер не вернул ссылку на аудио');
 
-      if (data.message) {
-        setResponseText(data.message);
-        setIsVisible(true);
-      } else {
-        throw new Error('Ответ не содержит поля "message"');
-      }
+      setAudioUrl(data.url);
+      return data.url;
     } catch (error) {
-      console.error('Ошибка при запросе:', error);
-      Alert.alert('Ошибка', 'Не удалось получить рассказ');
+      console.error('Ошибка загрузки аудио:', error);
+      Alert.alert('Ошибка', 'Не удалось получить аудиофайл');
+      return null;
     }
   };
 
-  const playPause = () => {
-    if (!isPlaying) {
-      handlePress();
+  const playAudio = async () => {
+    if (isPlaying) return;
+
+    let url = audioUrl;
+    if (!url) {
+      url = await fetchAudio();
+      if (!url) return;
     }
-    // setIsPlaying(prevState => !prevState);
-    // setIsVisible(false);
-  };
 
-  const closeAction = () => {
-    setIsVisible(false);
-    setIsPlaying(false);
-  };
+    if (soundRef.current) {
+      soundRef.current.release();
+      soundRef.current = null;
+    }
 
-  const volumeChange = (newVolume: number) => {
-    setVolume(newVolume);
-    VolumeManager.setVolume(newVolume);
-  };
+    soundRef.current = new Sound(url, '', (error) => {
+      if (error) {
+        console.error('Ошибка загрузки аудио:', error);
+        return;
+      }
 
-  const pan = useRef(new Animated.Value(80)).current;
-
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (_, gestureState) => {
-        if (gestureState.dy < 0) {
-          Animated.timing(pan, {
-            toValue: 80 - gestureState.dy,
-            duration: 50,
-            useNativeDriver: false,
-          }).start();
-        }
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy < 0) {
-          Animated.timing(pan, {
-            toValue: 410,
-            duration: 300,
-            useNativeDriver: false,
-          }).start(() => setIsExpanded(true));
-        } else {
-          Animated.timing(pan, {
-            toValue: 80,
-            duration: 300,
-            useNativeDriver: false,
-          }).start(() => setIsExpanded(false));
-        }
-      },
-    })
-  ).current;
-
-  const playAudio = () => {
-    if (soundRef.current && !isPlaying) {
-      soundRef.current.play((success) => {
-        if (success) {
-          console.log('Аудио успешно воспроизведено');
+      if (soundRef.current) {
+        setDuration(soundRef.current.getDuration());
+        soundRef.current.play((success) => {
+          if (success) {
+            console.log('Аудио успешно воспроизведено');
+          } else {
+            console.error('Ошибка воспроизведения');
+          }
           setIsPlaying(false);
-        } else {
-          console.error('Ошибка воспроизведения аудио');
-        }
-      });
-      // setIsPlaying(true);
-      setIsPlaying(prevState => !prevState);
-      setIsVisible(false);
+        });
+      }
+
+      setIsPlaying(true);
 
       intervalRef.current = setInterval(() => {
         soundRef.current?.getCurrentTime((seconds) => {
           setCurrentTime(seconds);
         });
       }, 100);
-    }
+    });
   };
 
   const pauseAudio = () => {
@@ -265,6 +283,61 @@ function HomeScreen(): React.JSX.Element {
     }
   };
 
+  // const closeAction = () => {
+  //   setIsVisible(false);
+  //   setIsPlaying(false);
+  // };
+
+  const volumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+    VolumeManager.setVolume(newVolume);
+  };
+
+  const pan = useRef(new Animated.Value(80)).current;
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy < 0) {
+          Animated.timing(pan, {
+            toValue: 80 - gestureState.dy,
+            duration: 50,
+            useNativeDriver: false,
+          }).start();
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy < 0) {
+          Animated.timing(pan, {
+            toValue: 410,
+            duration: 300,
+            useNativeDriver: false,
+          }).start(() => setIsExpanded(true));
+        } else {
+          Animated.timing(pan, {
+            toValue: 80,
+            duration: 300,
+            useNativeDriver: false,
+          }).start(() => setIsExpanded(false));
+        }
+      },
+    })
+  ).current;
+
+  useEffect(() => {
+    const setupVolumeManager = async () => {
+      try {
+        const currentVolume = await VolumeManager.getVolume();
+        setVolume(currentVolume.volume || 0);
+      } catch (error) {
+        console.error('Ошибка при получении громкости:', error);
+      }
+    };
+
+    setupVolumeManager();
+  }, []);
+
   return (
       <SafeAreaView style={styles.safeArea}>
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -272,36 +345,30 @@ function HomeScreen(): React.JSX.Element {
               <View style={styles.mapComponent}>
                 <Map />
               </View>
-              {isVisible && (
+              {/* {isVisible && (
                 <View style={styles.responseContainer}>
                   <TouchableOpacity style={styles.closeButton} onPress={closeAction}>
                     <Text style={styles.closeButtonText}>✕</Text>
                   </TouchableOpacity>
                   <Text style={styles.responseText}>{responseText}</Text>
                 </View>
-              )}
+              )} */}
                 {isExpanded ? (
                   <View style={[styles.bottomContainer, { height: containerHeight }]}>
                     <Animated.View style={styles.swipeElement} {...panResponder.panHandlers}>
                       <Line width={24} height={24} color={theme.colors.text} />
                     </Animated.View>
-                    <View style={styles.inputContainer}>
+                    {/* <View style={styles.inputContainer}>
                       <TextInput
                         style={styles.inputTop}
                         placeholder="Введите предпочтения"
-                        value={preferences}
-                        onChangeText={setPreferences}
+                        value={question}
+                        onChangeText={setQuestion}
                       />
-                      <TextInput
-                        style={styles.inputBot}
-                        placeholder="Введите местоположение"
-                        value={location}
-                        onChangeText={setLocation}
-                      />
-                      <TouchableOpacity onPress={playPause} style={styles.temporaryButton}>
+                      <TouchableOpacity onPress={playTestAudioFromApi} style={styles.temporaryButton}>
                           <Text style={styles.temporaryButtonText}>Сгенерировать</Text>
                       </TouchableOpacity>
-                    </View>
+                    </View> */}
                     <View style={styles.bottomSubTopContainerExpanded}>
                       <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
                         <Slider
@@ -338,7 +405,7 @@ function HomeScreen(): React.JSX.Element {
                       <TouchableOpacity>
                         <Next width={24} height={24} onPress={moveToEnd} color={isPlaying ? theme.colors.text : theme.colors.text2} />
                       </TouchableOpacity>
-                      </View>
+                    </View>
                     <View style={styles.bottomSubBotContainerExpanded}>
                       <View style={styles.bottomSubBotContainerLeftExpanded}>
                         <TouchableOpacity>
