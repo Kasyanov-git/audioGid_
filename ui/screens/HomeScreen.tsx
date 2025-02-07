@@ -126,23 +126,33 @@ function HomeScreen(): React.JSX.Element {
     VolumeManager.setVolume(newVolume);
   };
 
-  // const pan = useRef(new Animated.Value(0)).current;
+  const pan = useRef(new Animated.Value(80)).current;
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onPanResponderMove: (_, gestureState) => {
-        const newHeight = Math.max(0, -gestureState.dy);
-        setContainerHeight(newHeight);
+        if (gestureState.dy < 0) {
+          Animated.timing(pan, {
+            toValue: 80 - gestureState.dy,
+            duration: 50,
+            useNativeDriver: false,
+          }).start();
+        }
       },
       onPanResponderRelease: (_, gestureState) => {
-        if (gestureState.dy < -100) {
-          setContainerHeight(410);
-          setIsExpanded(true);
+        if (gestureState.dy < 0) {
+          Animated.timing(pan, {
+            toValue: 410,
+            duration: 300,
+            useNativeDriver: false,
+          }).start(() => setIsExpanded(true));
         } else {
-          setContainerHeight(80);
-          // setContainerHeight(240);
-          setIsExpanded(false);
+          Animated.timing(pan, {
+            toValue: 80,
+            duration: 300,
+            useNativeDriver: false,
+          }).start(() => setIsExpanded(false));
         }
       },
     })
