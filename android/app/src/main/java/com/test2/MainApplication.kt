@@ -20,8 +20,7 @@ class MainApplication : Application(), ReactApplication {
         override fun getPackages(): List<ReactPackage> {
             val packages = PackageList(this).packages.toMutableList()
 
-            // Добавляем вручную VolumeManagerPackage
-            packages.add(VolumeManagerPackage())
+            packages.add(AudioPackage())
 
             return packages
         }
