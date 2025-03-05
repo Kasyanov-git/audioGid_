@@ -4,6 +4,10 @@ import { Alert, Pressable, SafeAreaView, StyleSheet, Text, TextInput, TouchableO
 import Map from '../components/Map';
 import { Search,Suggest  } from 'react-native-yamap';
 import { GeoFigureType } from 'react-native-yamap/build/Search';
+import {ClassTimer} from './test.tsx';
+import { Geocoder } from 'react-native-yamap';
+Geocoder.init('500f7015-58c8-477a-aa0c-556ea02c2d9e');
+
 
 function HomeScreen(): React.JSX.Element {
 
@@ -15,57 +19,47 @@ function HomeScreen(): React.JSX.Element {
     console.log(suggestions)
     Suggest.reset();
   }
+  function sayHello() {
+    console.log('Hello every 3 seconds');
+  }
+  const timer=new ClassTimer(5);
   const handlePressTest = async () => {
+    // timer.start();
+    timer.fetchData();
     try {
+      
+      
       //Поиск по тексту(ищет как раз метки в близи)
-      const searchResult = await Search.searchText(
-        'Памятники',
-        { type: GeoFigureType.POINT, value: {lat: 59.9537667, lon: 30.4121783}},
-        { disableSpellingCorrection: true, geometry: true },
-      );
-      console.log(searchResult);
-      const response = await fetch('http://localhost:5555/ask', {  //ЗДЕСЬ МОЖНО ПОМЕНЯТЬ IP СЕРВЕРА
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        
-        body: JSON.stringify({
-          searchResult,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setResponseText(data);
-  
-      console.log('Ответ от сервера:', data);
-
-      if (data.message) {
-        setResponseText(data.message);
-        setIsVisible(true);
-      } else {
-        throw new Error('Ответ не содержит поля "message"');
-      }
+      // console.log("check");
+      // const searchResult = await Search.searchText(
+      //   'Парк',
+      //   { type: GeoFigureType.POINT, value: {lat: 59.9537667, lon: 30.4121783}},
+      //   { disableSpellingCorrection: true, geometry: true },
+      // );
+      // console.log("check1");
+      // console.log(searchResult);
+      
+      // const result= await Geocoder.geoToAddress({lat: 59.9537667, lon: 30.4121783});
+      //       console.log(result);
+      
     } catch (error) {
       console.error('Ошибка при запросе:', error);
       Alert.alert('Ошибка', 'Не удалось получить рассказ');
     }
+    
   };
   
   const [preferences, setPreferences] = useState('');
   const [location, setLocation] = useState('');
   const [isVisible, setIsVisible] = useState(false);
 
-  // if (!isVisible) {
-  //   return null;
-  // }
-
+  
+  
+  
+  
   const handlePress = async () => {
     try {
+      timer.stop();
       const response = await fetch('http://10.0.2.2:8000/ask', {  //ЗДЕСЬ МОЖНО ПОМЕНЯТЬ IP СЕРВЕРА
         method: 'POST',
         headers: {
