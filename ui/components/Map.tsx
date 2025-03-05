@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, PermissionsAndroid, Platform, View, SafeAreaView, Text, Image } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
 import { YaMap, Marker } from 'react-native-yamap';
-import axios from 'axios';
 YaMap.init('b8022cf4-d327-4c28-aa94-7174b69d808f');
 
 
@@ -25,7 +24,7 @@ function Map(): React.JSX.Element {
           buttonPositive: 'ОК',
         }
       );
-  
+
       // searchOrganizations()
       console.log('Разрешение на геолокацию:', granted);
       if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
@@ -33,19 +32,19 @@ function Map(): React.JSX.Element {
         return;
       }
     }
-    
+
     console.log('Разрешение получено, начинаем отслеживать...');
     YaMap
     Geolocation.watchPosition(
       (position) => {
-        
+
         console.log('Геопозиция получена:', position);
-        
+
         setCurrentPosition({
           lat: position.coords.latitude,
           lon: position.coords.longitude,
         });
-        
+
       },
       (error) => console.error(error),
       {
@@ -62,7 +61,7 @@ function Map(): React.JSX.Element {
   //         console.error(error);
   //       }
   //     };
-  
+
   if (!currentPosition) {
     console.log(currentPosition);
     return (
@@ -76,7 +75,7 @@ function Map(): React.JSX.Element {
     <View style={styles.mapContainer}>
       <YaMap
         showUserPosition={true}
-        userLocationIcon={require('../../assets/images/geoposition.png')}
+        userLocationIcon={require('../../assets/images/icons/geoposition.png')}
         scrollGesturesEnabled={true}
         zoomGesturesEnabled={true}
         rotateGesturesEnabled={false}
@@ -88,8 +87,7 @@ function Map(): React.JSX.Element {
           azimuth: 0,
         }}
         style={styles.map}
-      > 
-        
+      >
         {currentPosition && (
           <Marker
             point={{
@@ -98,7 +96,7 @@ function Map(): React.JSX.Element {
             }}
             children={
               <Image
-              source={require('../../assets/images/geoposition.png')}
+              source={require('../../assets/images/icons/geoposition.png')}
               style={styles.marker}
             />
             }

@@ -105,13 +105,22 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
     implementation("com.facebook.react:react-android")
 
-    // Добавляем Google Play Services для работы с геолокацией
     implementation("com.google.android.gms:play-services-location:21.0.1")
+
+    implementation project(':react-native-volume-manager')
+
+    implementation 'androidx.media:media:1.6.0'
+
+    implementation "androidx.core:core-ktx:1.10.1"
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
