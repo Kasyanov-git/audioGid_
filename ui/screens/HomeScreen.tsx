@@ -33,8 +33,12 @@ import { VolumeManager } from 'react-native-volume-manager';
 import Slider from '@react-native-community/slider';
 import LinearGradient from 'react-native-linear-gradient';
 import TrackPlayer, { State, useProgress, usePlaybackState } from 'react-native-track-player';
-
-const HomeScreen: React.FC = () => {
+import { Suggest  } from 'react-native-yamap';
+// import { GeoFigureType } from 'react-native-yamap/build/Search';
+import {ClassTimer} from './test.tsx';
+import { Geocoder } from 'react-native-yamap';
+Geocoder.init('500f7015-58c8-477a-aa0c-556ea02c2d9e');
+const HomeScreen: React.FC<{}> = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(0);
   const [containerHeight] = useState<number | 'auto'>('auto');
@@ -68,14 +72,13 @@ const HomeScreen: React.FC = () => {
 
       setAudioUrl(data.url);
       return data.url;
-    } catch (error) {
-      console.error('Ошибка загрузки аудио:', error);
-      Alert.alert('Ошибка', 'Не удалось получить аудиофайл');
-      return null;
+    }catch (error) {
+        console.error('Ошибка загрузки аудио:', error);
+        Alert.alert('Ошибка', 'Не удалось получить аудиофайл');
+        return null;
+      }
     }
-  };
-
-  const playAudio = async (): Promise<void> => {
+      const playAudio = async (): Promise<void> => {
     if (isPlaying) return;
 
     let url = audioUrl;
