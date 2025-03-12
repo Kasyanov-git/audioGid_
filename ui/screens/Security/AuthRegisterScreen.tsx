@@ -8,6 +8,8 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import { register } from '../../components/Api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthRegisterScreenProps {
   onRegister?: () => void;
@@ -16,11 +18,12 @@ interface AuthRegisterScreenProps {
 
 const AuthRegisterScreen: React.FC<AuthRegisterScreenProps> = ({ onRegister, navigation }) => {
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const registerFunc = () => {
+  const registerFunc = async () => {
     if (!email || !password || !confirmPassword) {
       Alert.alert('Ошибка', 'Заполните все поля');
       return;
@@ -32,14 +35,20 @@ const AuthRegisterScreen: React.FC<AuthRegisterScreenProps> = ({ onRegister, nav
     }
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const response = await register(email, username, password);
+      console.log('Ответ сервера:', response);
       Alert.alert('Успешная регистрация');
       if (onRegister) {
         onRegister();
       }
       navigation.navigate('Auth');
+    } catch (error) {
+      console.error('Ошибка при регистрации:', error);
+      Alert.alert('Ошибка', 'Не удалось зарегистрироваться');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -50,6 +59,14 @@ const AuthRegisterScreen: React.FC<AuthRegisterScreenProps> = ({ onRegister, nav
         placeholder="Введите email"
         value={email}
         onChangeText={setEmail}
+        autoCapitalize="none"
+      />
+      <Text style={styles.label}>Никнейм</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Введите никнейм"
+        value={username}
+        onChangeText={setUsername}
         autoCapitalize="none"
       />
       <Text style={styles.label}>Пароль</Text>

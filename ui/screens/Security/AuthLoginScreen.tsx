@@ -1,36 +1,36 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, Alert, StyleSheet, ActivityIndicator } from 'react-native';
-
-const defaultUser = { email: 'user@example.com', password: 'password123' };
+import { login } from '../../components/Api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthLoginScreenProps {
-    onLogin?: () => void;
+  onLogin?: (token: string) => void;
     navigation?: any;
   }
 
 const AuthLoginScreen: React.FC<AuthLoginScreenProps> = ({ onLogin, navigation }) => {
-  const [email, setEmail] = useState(defaultUser.email);
-  const [password, setPassword] = useState(defaultUser.password);
-
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const loginFunc = () => {
+
+  const loginFunc = async () => {
     if (!email || !password) {
       Alert.alert('Ошибка', 'Введите email и пароль');
       return;
     }
 
     setLoading(true);
-    setTimeout(() => {
-      if (email === defaultUser.email && password === defaultUser.password) {
-        Alert.alert('Успешный вход');
-        if (onLogin) {
-          onLogin();
-        }
-      } else {
-        Alert.alert('Неверный email или пароль');
+    try {
+      const response = await login(email, password);
+      await AsyncStorage.setItem('token', response.token);
+      if (onLogin) {
+        onLogin(response.token);
       }
+    } catch (error) {
+      Alert.alert('Ошибка', 'Неверный email или пароль');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (

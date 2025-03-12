@@ -55,7 +55,7 @@ const HomeScreen: React.FC = () => {
 
   const fetchAudio = async (): Promise<string | null> => {
     try {
-      const response = await fetch('https://f382dc2c-c94c-4487-af0b-4eb5a3946c7a.tunnel4.com/api/ask', {
+      const response = await fetch('http://149.154.69.184:8080/api/audio/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: 'Привет, расскажи мне что-нибудь' }),

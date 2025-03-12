@@ -1,13 +1,21 @@
 import React from 'react';
 import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import LogoutButton from './Security/LogoutButton';
 
-function ProfileScreen(): React.JSX.Element {
+interface ProfileScreenProps {
+  navigation: any;
+  onLogout: () => void;
+}
 
+function ProfileScreen({ navigation, onLogout }: ProfileScreenProps): React.JSX.Element {
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.textContainer}>
-        <Text style={styles.textStyle}>Hello, World!</Text>
+      <View style={styles.header}>
+        <View style={styles.textContainer}>
+          <Text style={styles.textStyle}>Hello, World!</Text>
+        </View>
       </View>
+      <LogoutButton navigation={navigation} onLogout={onLogout} />
     </SafeAreaView>
   );
 }
@@ -26,6 +34,13 @@ const styles = StyleSheet.create({
     zIndex: 1,
     top: 20,
     left: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
 });
 
