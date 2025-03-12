@@ -64,16 +64,14 @@ const HomeScreen: React.FC<{}> = () => {
   const fetchAudio = async (): Promise<string | null> => {
     try {
       
-      const response = await fetch('http://149.154.69.184:8080/api/process-json', {
+      const response = await fetch('http://149.154.69.184:8080/api/process-json-noauth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ json_data: await myInstance.fetchData()}),
       });
-      console.log(response.body)
       if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
-
       const data = await response.json();
-      console.log(data);
+      
       if (!data.url) throw new Error('Сервер не вернул ссылку на аудио');
 
       setAudioUrl(data.url);
