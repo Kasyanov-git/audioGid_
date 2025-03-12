@@ -10,8 +10,8 @@ export class ClassTimer {
     private readonly duration: number;
     
     id: number = 1;
-    constructor(duration: number) {
-      this.duration = duration;
+    constructor() {
+      this.duration =10;
     }
      start  ():void{
       console.log("start ");
@@ -66,7 +66,7 @@ export class ClassTimer {
           }
           this.id=(this.id+1);
     }
-   fetchData = async () => {
+ fetchData = async () => {
     console.log("run");
       try {
         const query = `
@@ -74,20 +74,20 @@ export class ClassTimer {
           (
             
             way(around:100, 59.9537667, 30.4121783)["highway"~"primary|secondary|tertiary|residential"];
-            node(around:100, 59.9537667, 30.4121783)["building"];
-            way(around:100, 59.9537667, 30.4121783)["building"];
-            nwr(around:100, 59.9537667, 30.4121783)["amenity"~"arts_centre|fountain|planetarium|theatre|monastery"];
-            nwr(around:100, 59.9537667, 30.4121783)["tourism"~"aquarium|artwork|attraction|gallery|museum|theme_park|viewpoint|zoo|yes"];
-            nwr(around:100, 59.9537667, 30.4121783)["historic"];
-            node(around:100, 59.9537667, 30.4121783)["leisure"="park"];
-            way(around:100, 59.9537667, 30.4121783)["leisure"="park"];
+            
             
           );
           out body;
           >;
           out skel qt;
         `;
-
+        // node(around:100, 59.9537667, 30.4121783)["building"];
+        // way(around:100, 59.9537667, 30.4121783)["building"];
+        // nwr(around:100, 59.9537667, 30.4121783)["amenity"~"arts_centre|fountain|planetarium|theatre|monastery"];
+        // nwr(around:100, 59.9537667, 30.4121783)["tourism"~"aquarium|artwork|attraction|gallery|museum|theme_park|viewpoint|zoo|yes"];
+        // nwr(around:100, 59.9537667, 30.4121783)["historic"];
+        // node(around:100, 59.9537667, 30.4121783)["leisure"="park"];
+        // way(around:100, 59.9537667, 30.4121783)["leisure"="park"];
         const response = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
           headers: {
@@ -102,7 +102,7 @@ export class ClassTimer {
         const centerPoint: Point = { lat: 59.9537667, lon: 30.4121783 };
         const sortedResults = sortByDistance(result.elements, centerPoint,elementsMap);
         
-        // console.log(JSON.stringify(sortedResults, null, 2));
+        return sortedResults;
       } catch (error) {
         console.error('Ошибка при выполнении запроса:', error);
       } finally {

@@ -38,6 +38,9 @@ import { Suggest  } from 'react-native-yamap';
 import {ClassTimer} from './test.tsx';
 import { Geocoder } from 'react-native-yamap';
 Geocoder.init('500f7015-58c8-477a-aa0c-556ea02c2d9e');
+
+
+
 const HomeScreen: React.FC<{}> = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(0);
@@ -45,7 +48,8 @@ const HomeScreen: React.FC<{}> = () => {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [previousVolume, setPreviousVolume] = useState<number>(volume);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-
+  const myInstance = new ClassTimer();
+  
   const progress = useProgress();
   const playbackState = usePlaybackState();
 
@@ -59,15 +63,17 @@ const HomeScreen: React.FC<{}> = () => {
 
   const fetchAudio = async (): Promise<string | null> => {
     try {
-      const response = await fetch('https://f382dc2c-c94c-4487-af0b-4eb5a3946c7a.tunnel4.com/api/ask', {
+      
+      const response = await fetch('http://149.154.69.184:8080/api/process-json', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: 'Привет, расскажи мне что-нибудь' }),
+        body: JSON.stringify({ json_data: await myInstance.fetchData()}),
       });
-
+      console.log(response.body)
       if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
 
       const data = await response.json();
+      console.log(data);
       if (!data.url) throw new Error('Сервер не вернул ссылку на аудио');
 
       setAudioUrl(data.url);
@@ -165,7 +171,7 @@ const HomeScreen: React.FC<{}> = () => {
   };
 
   const pan = useRef(new Animated.Value(80)).current;
-
+  // открытие слайдера меню 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
