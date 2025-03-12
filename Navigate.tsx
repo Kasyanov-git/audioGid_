@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { NavigationContainer, Route, useTheme } from '@react-navigation/native';
 import { Text } from '@react-navigation/elements';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from './ui/screens/HomeScreen';
-// import MapScreen from './ui/screens/MapScreen';
 import NavigatorScreen from './ui/screens/NavigatorScreen';
 import ProfileScreen from './ui/screens/ProfileScreen';
 import AuthLoginScreen from './ui/screens/Security/AuthLoginScreen';
@@ -17,10 +16,12 @@ import SearchIcon from './assets/images/icons/search.svg';
 import SearchIconOutlined from './assets/images/icons/search-outline.svg';
 import OfflineIcon from './assets/images/icons/offline.svg';
 import OfflineIconOutlined from './assets/images/icons/offline-outlined.svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
+// Кастомный TabBar
 const MyTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
   const { colors } = useTheme();
 
@@ -47,11 +48,7 @@ const MyTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
         }
 
         return (
-          <View
-            key={route.key}
-            style={styles.button}
-            onTouchStart={onPress}
-          >
+          <View key={route.key} style={styles.button} onTouchStart={onPress}>
             <IconName width={24} height={24} />
             <Text style={{ color: isFocused ? colors.primary : colors.text }}>
               {label}
@@ -63,20 +60,48 @@ const MyTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
   );
 };
 
-export const MainApp = () => (
-  <Tab.Navigator
-    tabBar={(props) => <MyTabBar {...props} />}
-    screenOptions={{ headerShown: false }}
+export const MainApp: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
+  return (
+    <Tab.Navigator
+      tabBar={(props) => <MyTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
-    <Tab.Screen name="Home" component={HomeScreen} />
-    {/* <Tab.Screen name="Map" component={MapScreen} /> */}
-    <Tab.Screen name="Navigator" component={NavigatorScreen} />
-    <Tab.Screen name="Profile" component={ProfileScreen} />
-  </Tab.Navigator>
-);
+      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Navigator" component={NavigatorScreen} />
+      <Tab.Screen name="Profile">
+        {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
+      </Tab.Screen>
+    </Tab.Navigator>
+  );
+};
 
 const Navigate: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = await AsyncStorage.getItem('token');
+      setIsAuthenticated(!!token);
+      setLoading(false);
+    };
+
+    checkAuth();
+  }, []);
+
+  const handleLogin = async (token: string) => {
+    await AsyncStorage.setItem('token', token);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem('token');
+    setIsAuthenticated(false);
+  };
+
+  if (loading) {
+    return null; // Можно добавить индикатор загрузки
+  }
 
   return (
     <NavigationContainer>
@@ -84,21 +109,16 @@ const Navigate: React.FC = () => {
         {!isAuthenticated ? (
           <>
             <Stack.Screen name="Auth">
-              {(props) => (
-                <AuthLoginScreen {...props} onLogin={() => setIsAuthenticated(true)} />
-              )}
+              {(props) => <AuthLoginScreen {...props} onLogin={handleLogin} />}
             </Stack.Screen>
             <Stack.Screen name="AuthRegister">
-              {(props) => (
-                <AuthRegisterScreen
-                  {...props}
-                  onRegister={() => props.navigation.navigate('Auth')}
-                />
-              )}
+              {(props) => <AuthRegisterScreen {...props} onRegister={() => props.navigation.navigate('Auth')} />}
             </Stack.Screen>
           </>
         ) : (
-          <Stack.Screen name="MainApp" component={MainApp} />
+          <Stack.Screen name="MainApp">
+            {(props) => <MainApp {...props} onLogout={handleLogout} />}
+          </Stack.Screen>
         )}
       </Stack.Navigator>
     </NavigationContainer>
