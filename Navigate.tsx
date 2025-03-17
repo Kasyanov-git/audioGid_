@@ -8,20 +8,26 @@ import NavigatorScreen from './ui/screens/NavigatorScreen';
 import ProfileScreen from './ui/screens/ProfileScreen';
 import AuthLoginScreen from './ui/screens/Security/AuthLoginScreen';
 import AuthRegisterScreen from './ui/screens/Security/AuthRegisterScreen';
+import HistoryScreen from './ui/screens/ProfileTools/HistoryScreen';
+import FavouritesScreen from './ui/screens/ProfileTools/FavouritesScreen';
+import SettingsScreen from './ui/screens/ProfileTools/SettingsScreen';
+import SubscriptionScreen from './ui/screens/ProfileTools/SubscriptionScreen';
+import SupportScreen from './ui/screens/ProfileTools/SupportScreen';
+import AboutScreen from './ui/screens/ProfileTools/AboutScreen';
+import PrivacyPolicyScreen from './ui/screens/ProfileTools/PrivacyPolicyScreen';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { theme } from './theme';
 import HomeIcon from './assets/images/icons/home.svg';
 import HomeIconOutlined from './assets/images/icons/home-outlined.svg';
 import SearchIcon from './assets/images/icons/search.svg';
 import SearchIconOutlined from './assets/images/icons/search-outline.svg';
-import OfflineIcon from './assets/images/icons/offline.svg';
-import OfflineIconOutlined from './assets/images/icons/offline-outlined.svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ProfileIcon from './assets/images/icons/profile-icon.svg'
+import ProfileIconOutlined from './assets/images/icons/profile-outlined.svg'
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// Кастомный TabBar
 const MyTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
   const { colors } = useTheme();
 
@@ -39,12 +45,12 @@ const MyTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
         };
 
         let IconName: React.ElementType = HomeIcon;
-        if (route.name === 'Home') {
+        if (route.name === 'Главная') {
           IconName = isFocused ? HomeIcon : HomeIconOutlined;
-        } else if (route.name === 'Navigator') {
+        } else if (route.name === 'Поиск') {
           IconName = isFocused ? SearchIcon : SearchIconOutlined;
-        } else if (route.name === 'Profile') {
-          IconName = isFocused ? OfflineIcon : OfflineIconOutlined;
+        } else if (route.name === 'Профиль') {
+          IconName = isFocused ? ProfileIconOutlined : ProfileIcon;
         }
 
         return (
@@ -60,16 +66,35 @@ const MyTabBar: React.FC<any> = ({ state, descriptors, navigation }) => {
   );
 };
 
+const ProfileStack = createNativeStackNavigator();
+
+export const ProfileStackNavigator = ({ onLogout }: { onLogout: () => void }) => {
+  return (
+    <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+      <ProfileStack.Screen name="ProfileMain">
+        {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
+      </ProfileStack.Screen>
+      <ProfileStack.Screen name="History" component={HistoryScreen} />
+      <ProfileStack.Screen name="Favourites" component={FavouritesScreen} />
+      <ProfileStack.Screen name="Settings" component={SettingsScreen} />
+      <ProfileStack.Screen name="Subscription" component={SubscriptionScreen} />
+      <ProfileStack.Screen name="Support" component={SupportScreen} />
+      <ProfileStack.Screen name="About" component={AboutScreen} />
+      <ProfileStack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
+    </ProfileStack.Navigator>
+  );
+};
+
 export const MainApp: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
   return (
     <Tab.Navigator
       tabBar={(props) => <MyTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Navigator" component={NavigatorScreen} />
-      <Tab.Screen name="Profile">
-        {(props) => <ProfileScreen {...props} onLogout={onLogout} />}
+      <Tab.Screen name="Главная" component={HomeScreen} />
+      <Tab.Screen name="Поиск" component={NavigatorScreen} />
+      <Tab.Screen name="Профиль">
+        {(props) => <ProfileStackNavigator {...props} onLogout={onLogout} />}
       </Tab.Screen>
     </Tab.Navigator>
   );
@@ -100,7 +125,7 @@ const Navigate: React.FC = () => {
   };
 
   if (loading) {
-    return null; // Можно добавить индикатор загрузки
+    return null;
   }
 
   return (
@@ -120,6 +145,7 @@ const Navigate: React.FC = () => {
             {(props) => <MainApp {...props} onLogout={handleLogout} />}
           </Stack.Screen>
         )}
+        {/* <Stack.Screen name="About" component={AboutScreen} /> */}
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -128,7 +154,10 @@ const Navigate: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.background,
+    // backgroundColor: theme.colors.background,
+    // opacity: 0.2,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.text2,
   },
   button: {
     flex: 1,

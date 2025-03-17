@@ -423,8 +423,8 @@ const styles = StyleSheet.create({
     minHeight: 80,
     // minHeight: 240,
     maxHeight: 410,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.text2,
+    // borderBottomWidth: 1,
+    // borderBottomColor: theme.colors.text2,
   },
   swipeElement: {
     flexDirection: 'row',
