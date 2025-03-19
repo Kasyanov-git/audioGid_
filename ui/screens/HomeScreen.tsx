@@ -37,9 +37,18 @@ import { Suggest  } from 'react-native-yamap';
 // import { GeoFigureType } from 'react-native-yamap/build/Search';
 import {ClassTimer} from './test.tsx';
 import { Geocoder } from 'react-native-yamap';
+import base64 from 'base-64';
+import RNFS from 'react-native-fs';
+
 Geocoder.init('500f7015-58c8-477a-aa0c-556ea02c2d9e');
 
-
+interface DataItem {
+  audio: string;
+  place_id: number;
+  place_name: string;
+  response: string;
+  status: string;
+}
 
 const HomeScreen: React.FC<{}> = () => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -71,30 +80,36 @@ const HomeScreen: React.FC<{}> = () => {
       });
       if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
       const data = await response.json();
-      
-      if (!data.url) throw new Error('Сервер не вернул ссылку на аудио');
 
-      setAudioUrl(data.url);
-      return data.url;
+      const filePath = `${RNFS.DocumentDirectoryPath}/audio.mp3`;
+      console.log("Начинаем сохранение");
+      await RNFS.writeFile(filePath, data[0].audio, 'base64');
+      console.log('Аудиофайл сохранён:', filePath);
+
+      return filePath;
+
     }catch (error) {
         console.error('Ошибка загрузки аудио:', error);
         Alert.alert('Ошибка', 'Не удалось получить аудиофайл');
         return null;
       }
-    }
-      const playAudio = async (): Promise<void> => {
+  }
+  
+  const playAudio = async (): Promise<void> => {
     if (isPlaying) return;
 
     let url = audioUrl;
     if (!url) {
       url = await fetchAudio();
       if (!url) return;
+
+      setAudioUrl(url);
     }
 
     await TrackPlayer.reset();
     await TrackPlayer.add({
       id: 'audio-track',
-      url: url,
+      url: `file://${url}`,
       title: 'Аудиогид',
       artist: 'Автор',
     });

@@ -69,9 +69,9 @@ const AuthLoginScreen: React.FC<AuthLoginScreenProps> = ({ onLogin, navigation }
             secureTextEntry
           />
         </View>
-        <View style={styles.forgotPasswordContainer}>
+        <TouchableOpacity style={styles.forgotPasswordContainer}>
           <Text style={styles.forgotPasswordText}>Не помню пароль</Text>
-        </View>
+        </TouchableOpacity>
         <TouchableOpacity onPress={!loading ? loginFunc : undefined}>
           <LinearGradient colors={['#2196F3', '#13578D']} style={styles.buttonLogin}>
           {loading ? (
@@ -91,10 +91,10 @@ const AuthLoginScreen: React.FC<AuthLoginScreenProps> = ({ onLogin, navigation }
             </View>
           </TouchableOpacity>
         </View>
-        <View style={styles.registerTextContainer}>
-          <Text style={styles.registerText1} onPress={() => navigation.navigate('AuthRegister')}>Еще нет аккаунта?</Text>
-          <Text style={styles.registerText2} onPress={() => navigation.navigate('AuthRegister')}>Зарегистрироваться</Text>
-        </View>
+        <TouchableOpacity style={styles.registerTextContainer} onPress={() => navigation.navigate('AuthRegister')}>
+          <Text style={styles.registerText1}>Еще нет аккаунта?</Text>
+          <Text style={styles.registerText2}>Зарегистрироваться</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
