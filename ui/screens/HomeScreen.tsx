@@ -106,13 +106,17 @@ const HomeScreen: React.FC<{}> = () => {
       setAudioUrl(url);
     }
 
-    await TrackPlayer.reset();
-    await TrackPlayer.add({
-      id: 'audio-track',
-      url: `file://${url}`,
-      title: 'Аудиогид',
-      artist: 'Автор',
-    });
+    const currentTrack = await TrackPlayer.getCurrentTrack();
+
+    if (currentTrack === null) {
+      await TrackPlayer.reset();
+      await TrackPlayer.add({
+        id: 'audio-track',
+        url: `file://${url}`,
+        title: 'Аудиогид',
+        artist: 'Автор',
+      });
+    }
     await TrackPlayer.play();
     setIsPlaying(true);
   };
@@ -465,8 +469,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   sliderVolume: {
-    width: 302,
-    height: 2,
+    flex: 1,
+    height: 20,
   },
   bottomSubTopContainerExpanded: {
     flexDirection: 'row',
@@ -476,7 +480,7 @@ const styles = StyleSheet.create({
   },
   sliderTrack: {
     flex: 1,
-    height: 1,
+    height: 20,
   },
   timeText: {
     fontSize: 14,

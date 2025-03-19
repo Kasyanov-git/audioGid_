@@ -3,6 +3,7 @@ import { StyleSheet, PermissionsAndroid, Platform, View, SafeAreaView, Text, Ima
 import Geolocation from 'react-native-geolocation-service';
 import { YaMap, Marker } from 'react-native-yamap';
 YaMap.init('b8022cf4-d327-4c28-aa94-7174b69d808f');
+import GeopositionIcon from '../../assets/images/icons/geoposition.svg';
 
 
 function Map(): React.JSX.Element {
@@ -94,12 +95,12 @@ function Map(): React.JSX.Element {
               lat: currentPosition.lat,
               lon: currentPosition.lon,
             }}
-            children={
-              <Image
-              source={require('../../assets/images/icons/geoposition.png')}
-              style={styles.marker}
-            />
-            }
+            // children={
+            //   <GeopositionIcon width={40} height={40}
+            //   // source={require('../../assets/images/icons/geoposition.png')}
+            //   style={styles.marker}
+            // />
+            // }
           />
         )}
       </YaMap>
@@ -120,8 +121,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   marker: {
-    width: 40,
-    height: 40,
+    // width: 40,
+    // height: 40,
   },
 });
 
