@@ -10,7 +10,7 @@ export const theme = {
       test: ['#2196F3', '#13578D'],
     },
     fonts: {
-      regular: 'Roboto-Regular',
-      bold: 'Roboto-Bold',
+      regular: 'RobotoRegular',
+      bold: 'RobotoBold',
     },
   };

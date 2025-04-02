@@ -24,6 +24,7 @@ import SearchIconOutlined from './assets/images/icons/search-outline.svg';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ProfileIcon from './assets/images/icons/profile-icon.svg'
 import ProfileIconOutlined from './assets/images/icons/profile-outlined.svg'
+import { getValidToken } from './services/auth';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -104,9 +105,16 @@ const Navigate: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // useEffect(() => {
+  //   const checkAuth = async () => {
+  //     const token = await AsyncStorage.getItem('token');
+  //     setIsAuthenticated(!!token);
+  //     setLoading(false);
+  //   };
+
   useEffect(() => {
     const checkAuth = async () => {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getValidToken();
       setIsAuthenticated(!!token);
       setLoading(false);
     };
@@ -124,7 +132,7 @@ const Navigate: React.FC = () => {
     setIsAuthenticated(false);
   };
 
-  if (loading) {
+  if (isAuthenticated === null) {
     return null;
   }
 
@@ -155,9 +163,12 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     // backgroundColor: theme.colors.background,
+    backgroundColor: '#FFF',
     // opacity: 0.2,
+    // borderTopWidth: 1,
+    // borderTopColor: theme.colors.text2,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.text2,
+    borderTopColor: '#EEEEEE',
   },
   button: {
     flex: 1,

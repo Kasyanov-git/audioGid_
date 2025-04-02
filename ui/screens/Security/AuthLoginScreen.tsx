@@ -42,10 +42,10 @@ const AuthLoginScreen: React.FC<AuthLoginScreenProps> = ({ onLogin, navigation }
   return (
     <SafeAreaView style={styles.safeArea}>
       <LinearGradient colors={['#2196F3', '#13578D']} style={styles.containerBackground}>
-        <View style={styles.mainTitleContainer}>
+        {/* <View style={styles.mainTitleContainer}>
           <Text style={styles.mainTitle}>Привет!</Text>
           <Text style={styles.mainSubTitle}>Добро пожаловать в AI Guide</Text>
-        </View>
+        </View> */}
       </LinearGradient>
       <View style={styles.containerLogin}>
         <Text style={styles.titleLogin}>Вход</Text>

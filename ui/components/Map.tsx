@@ -1,20 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, PermissionsAndroid, Platform, View, SafeAreaView, Text, Image } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { StyleSheet, PermissionsAndroid, Platform, View, SafeAreaView, Text, Image, TouchableOpacity } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
-import { YaMap, Marker } from 'react-native-yamap';
-YaMap.init('b8022cf4-d327-4c28-aa94-7174b69d808f');
+import { YaMap, Marker, Animation } from 'react-native-yamap';
+// YaMap.init('b8022cf4-d327-4c28-aa94-7174b69d808f');
 import GeopositionIcon from '../../assets/images/icons/geoposition.svg';
+import { UIManager, findNodeHandle } from 'react-native';
 
 
 function Map(): React.JSX.Element {
   const [currentPosition, setCurrentPosition] = useState<{ lat: number; lon: number } | null>(null);
+  const [zoomLevel, setZoomLevel] = useState<number>(15);
+  const mapRef = useRef<any>(null);
 
   useEffect(() => {
     requestLocationPermission();
   }, []);
 
   const requestLocationPermission = async () => {
+    YaMap.init('b8022cf4-d327-4c28-aa94-7174b69d808f');
     if (Platform.OS === 'android') {
+      // const currentLocale = await YaMap.getLocale();
+      // console.log('Current locale:', currentLocale);
+      // await YaMap.resetLocale();
+      // console.log('Язык карты сменен на системный');
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
         {
@@ -63,6 +71,28 @@ function Map(): React.JSX.Element {
   //       }
   //     };
 
+  // const handleZoomIn = () => {
+  //   const newZoom = Math.min(zoomLevel + 1, 19);
+  //   setZoomLevel(newZoom);
+  //   setZoomOnMap(newZoom);
+  // };
+
+  // const handleZoomOut = () => {
+  //   const newZoom = Math.max(zoomLevel - 1, 3);
+  //   setZoomLevel(newZoom);
+  //   setZoomOnMap(newZoom);
+  // };
+
+  // const setZoomOnMap = (zoom: number) => {
+  //   if (mapRef.current) {
+  //     UIManager.dispatchViewManagerCommand(
+  //       findNodeHandle(mapRef.current),
+  //       'setZoom',
+  //       [zoom, 300, 'smooth']
+  //     );
+  //   }
+  // };
+
   if (!currentPosition) {
     console.log(currentPosition);
     return (
@@ -72,9 +102,12 @@ function Map(): React.JSX.Element {
     );
   }
 
+  // console.log('Map ref:', mapRef.current);
+
   return (
     <View style={styles.mapContainer}>
       <YaMap
+        ref={mapRef}
         showUserPosition={true}
         userLocationIcon={require('../../assets/images/icons/geoposition.png')}
         scrollGesturesEnabled={true}
@@ -84,7 +117,7 @@ function Map(): React.JSX.Element {
         initialRegion={{
           lat: currentPosition?.lat,
           lon: currentPosition?.lon,
-          zoom: 15,
+          zoom: zoomLevel,
           azimuth: 0,
         }}
         style={styles.map}
@@ -104,6 +137,14 @@ function Map(): React.JSX.Element {
           />
         )}
       </YaMap>
+      {/* <View style={styles.zoomControls}>
+        <TouchableOpacity style={styles.zoomButton} onPress={handleZoomIn}>
+          <Text style={styles.zoomButtonText}>+</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.zoomButton} onPress={handleZoomOut}>
+          <Text style={styles.zoomButtonText}>-</Text>
+        </TouchableOpacity>
+      </View> */}
     </View>
   );
 }
@@ -123,6 +164,28 @@ const styles = StyleSheet.create({
   marker: {
     // width: 40,
     // height: 40,
+  },
+  zoomControls: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
+  zoomButton: {
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zoomButtonText: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
 });
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dimensions, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import LogoutButton from './Security/LogoutButton';
 import EditIcon from '../../assets/images/icons/edit-icon.svg';
@@ -9,6 +9,7 @@ import ChevronRight from '../../assets/images/icons/chevron-right-icon.svg';
 import { theme } from '../../theme';
 import Carousel, { Pagination } from 'react-native-snap-carousel';
 import { useWindowDimensions } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -25,6 +26,17 @@ function ProfileScreen({ navigation, onLogout }: ProfileScreenProps): React.JSX.
   const [avatar, setAvatar] = useState<{ uri: string } | null>(null);
   const [activeSlide, setActiveSlide] = useState<number>(0);
   const { width } = useWindowDimensions();
+  const [user, setUser] = useState<{username: string; email: string} | null>(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        setUser(JSON.parse(userData));
+      }
+    };
+    loadUser();
+  }, []);
 
   const carouselItems: CarouselItem[] = [
     { id: 1, imageUrl: 'https://cdn1.flamp.ru/5cfc249baad12b9824c7751ad357724a.jpg' },
@@ -74,8 +86,8 @@ function ProfileScreen({ navigation, onLogout }: ProfileScreenProps): React.JSX.
               )}
             </View>
           </TouchableOpacity>
-          <Text style={styles.profileUsername}>Username</Text>
-          <Text style={styles.profileEmail}>email</Text>
+          <Text style={styles.profileUsername}>{user?.username || 'Username'}</Text>
+          <Text style={styles.profileEmail}>{user?.email || 'email'}</Text>
           <TouchableOpacity style={styles.editProfileContainer}>
             <EditIcon width={24} height={24}/>
             <Text style={styles.profileEditText}>Редактировать профиль</Text>
