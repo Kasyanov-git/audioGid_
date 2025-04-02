@@ -4,6 +4,8 @@ import { HistoryItem } from '../../../types/types';
 import { getAudioHistory, deleteAudioFromHistory } from "../../../services/AudioService";
 import PlayIcon from '../../../assets/images/icons/play.svg';
 import DeleteIcon from '../../../assets/images/icons/delete-icon.svg';
+import ChevronLeft from '../../../assets/images/icons/chevron-left.svg';
+import { theme } from "../../../theme";
 
 interface HistoryScreenProps {
   navigation: any;
@@ -57,11 +59,15 @@ function HistoryScreen({ navigation }: HistoryScreenProps): React.JSX.Element {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-        <Text style={styles.backButtonText}>← Назад</Text>
-      </TouchableOpacity>
-      
-      <Text style={styles.title}>История прослушивания</Text>
+      <View style={styles.header}>
+        <TouchableOpacity 
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+        >
+          <ChevronLeft width={24} height={24} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.title}>История</Text>
+      </View>
       
       {loading ? (
         <Text>Загрузка...</Text>
@@ -82,21 +88,22 @@ function HistoryScreen({ navigation }: HistoryScreenProps): React.JSX.Element {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEEEEE',
   },
   backButton: {
-    marginBottom: 20,
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#2196F3',
+    marginRight: 16,
   },
   title: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#000',
+    color: theme.colors.text,
   },
   emptyText: {
     textAlign: 'center',
