@@ -13,9 +13,13 @@ import {
   Animated,
   ScrollView,
   ActivityIndicator,
+  Modal,
+  FlatList,
 } from 'react-native';
 import Map from '../components/Map';
 import { theme } from '../../theme';
+import CheckboxUnchecked from '../../assets/images/icons/chevron-right-icon.svg';
+import CheckboxChecked from '../../assets/images/icons/chevron-left-blue.svg';
 import Settings from '../../assets/images/icons/settings.svg';
 import Previous from '../../assets/images/icons/previous.svg';
 import Minus15 from '../../assets/images/icons/minus15.svg';
@@ -51,9 +55,20 @@ import { useFocusEffect } from '@react-navigation/native';
 Geocoder.init('500f7015-58c8-477a-aa0c-556ea02c2d9e');
 
 type AudioData = {
-  path: string | null;
+  path: string;
   text: string;
   title: string;
+};
+// type AudioData = {
+//   path: string | null;
+//   text: string;
+//   title: string;
+// };
+
+type Preference = {
+  id: string;
+  name: string;
+  selected: boolean;
 };
 
 interface HomeScreenProps {
@@ -83,6 +98,29 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
   const [isGeneratingNewAudio, setIsGeneratingNewAudio] = useState<boolean>(false);
   const [isAudioFavorite, setIsAudioFavorite] = useState(false);
   const [currentAudioId, setCurrentAudioId] = useState<string | null>(null);
+  const [showPreferencesModal, setShowPreferencesModal] = useState(false);
+  const [preferences, setPreferences] = useState<Preference[]>([
+    { id: '1', name: 'Парки', selected: true },
+    { id: '2', name: 'Монументы', selected: true },
+    { id: '3', name: 'Музеи', selected: true },
+    { id: '4', name: 'Памятники', selected: true },
+    { id: '5', name: 'Рестораны', selected: true },
+    { id: '6', name: 'Кафе', selected: true },
+    { id: '7', name: 'Театры', selected: true },
+    { id: '8', name: 'Галереи', selected: true },
+    { id: '9', name: 'Соборы', selected: true },
+    { id: '10', name: 'Мосты', selected: true },
+    { id: '11', name: 'Площади', selected: true },
+    { id: '12', name: 'Улицы', selected: true },
+  ]);
+
+  const togglePreference = (id: string) => {
+    setPreferences(prev => 
+      prev.map(item => 
+        item.id === id ? { ...item, selected: !item.selected } : item
+      )
+    );
+  };
   
   const progress = useProgress();
   const playbackState = usePlaybackState();
@@ -114,43 +152,105 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
     }
   }, [playbackState.state]);
 
+  // const fetchAudio = async (): Promise<AudioData> => {
+  //   try {
+  //     setIsLoading(true);
+  //     const jwtToken = await getToken();
+  //     if (!jwtToken) throw new Error('Токен отсутствует');
+
+  //     const response = await fetch('http://149.154.69.184:8080/api/process-json-noauth', {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json', 'Authorization': jwtToken },
+  //       body: JSON.stringify({ json_data: await myInstance.fetchData()}),
+  //     });
+      
+  //     if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
+  //     const data = await response.json();
+
+  //     const filePath = `${RNFS.DocumentDirectoryPath}/audio_${Date.now()}.mp3`;
+  //     await RNFS.writeFile(filePath, data[0].audio, 'base64');
+      
+  //     const result: AudioData = {
+  //       path: filePath,
+  //       text: data[0].response,
+  //       title: data[0].place_name
+  //     };
+
+  //     const newItem = await saveAudioToHistory({
+  //       path: filePath,
+  //       text: data[0].response,
+  //       title: data[0].place_name
+  //     });
+
+  //     setCurrentAudioId(newItem.id);
+  //     const favoriteStatus = await isFavorite(newItem.id);
+  //     setIsAudioFavorite(favoriteStatus);
+      
+  //     setAudioData(result);
+  //     return result;
+
+  //   } catch (error) {
+  //     console.error('Ошибка загрузки аудио:', error);
+  //     throw error;
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
   const fetchAudio = async (): Promise<AudioData> => {
     try {
       setIsLoading(true);
       const jwtToken = await getToken();
       if (!jwtToken) throw new Error('Токен отсутствует');
-
+  
+      // 1. Отправляем запрос на сервер
       const response = await fetch('http://149.154.69.184:8080/api/process-json-noauth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': jwtToken },
-        body: JSON.stringify({ json_data: await myInstance.fetchData()}),
+        body: JSON.stringify({ json_data: await myInstance.fetchData() }),
       });
       
       if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
       const data = await response.json();
-
-      const filePath = `${RNFS.DocumentDirectoryPath}/audio_${Date.now()}.mp3`;
-      await RNFS.writeFile(filePath, data[0].audio, 'base64');
-      
+  
+      // 2. Проверяем, что data — массив и не пустой
+      if (!Array.isArray(data)) throw new Error('Ответ сервера не является массивом');
+      if (data.length === 0) throw new Error('Нет данных в ответе сервера');
+  
+      // 3. Ищем первый элемент, где audio !== null
+      const validItem = data.find(item => item.audio !== null);
+      if (!validItem) throw new Error('Нет доступного аудио');
+  
+      // 4. Если audio есть — сохраняем в файл
+      let filePath = '';
+      if (validItem.audio) {
+        filePath = `${RNFS.DocumentDirectoryPath}/audio_${Date.now()}.mp3`;
+        await RNFS.writeFile(filePath, validItem.audio, 'base64');
+      }
+  
+      // 5. Формируем результат
       const result: AudioData = {
         path: filePath,
-        text: data[0].response,
-        title: data[0].place_name
+        text: validItem.response,
+        title: validItem.place_name
       };
-
+  
+      // 6. Сохраняем в историю (если нужно)
+      if (result.path === null) {
+        throw new Error('Нельзя сохранить в историю: аудиофайл отсутствует');
+      }
       const newItem = await saveAudioToHistory({
-        path: filePath,
-        text: data[0].response,
-        title: data[0].place_name
+        path: result.path,
+        text: result.text,
+        title: result.title
       });
-
       setCurrentAudioId(newItem.id);
       const favoriteStatus = await isFavorite(newItem.id);
       setIsAudioFavorite(favoriteStatus);
       
       setAudioData(result);
       return result;
-
+  
     } catch (error) {
       console.error('Ошибка загрузки аудио:', error);
       throw error;
@@ -431,6 +531,75 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
     }, [currentAudioId])
   );
 
+  const PreferencesModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={showPreferencesModal}
+      onRequestClose={() => setShowPreferencesModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContainer}>
+          <Text style={styles.modalTitle}>Выберите предпочтения</Text>
+          
+          <FlatList
+            data={preferences}
+            keyExtractor={item => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity 
+                style={styles.preferenceItem} 
+                onPress={() => togglePreference(item.id)}
+              >
+                {item.selected ? (
+                  <CheckboxChecked width={24} height={24} />
+                ) : (
+                  <CheckboxUnchecked width={24} height={24} />
+                )}
+                <Text style={styles.preferenceText}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+            contentContainerStyle={styles.preferencesList}
+          />
+          
+          <TouchableOpacity 
+            style={styles.modalCloseButton}
+            onPress={() => setShowPreferencesModal(false)}
+          >
+            <Text style={styles.modalCloseButtonText}>Готово</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  const GenerateContentSection = () => (
+    <View style={styles.generateContentContainer}>
+      <TouchableOpacity 
+        onPress={generateContent}
+        disabled={isLoading}
+        style={styles.generateButton}
+      >
+        <LinearGradient colors={['#2196F3', '#13578D']} style={styles.generateButtonGradient}>
+          {isLoading ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <>
+              <AIoutlined width={24} height={24} />
+              <Text style={styles.generateButtonText}>Сгенерировать рассказ</Text>
+            </>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+      
+      <TouchableOpacity 
+        style={styles.preferencesButton}
+        onPress={() => setShowPreferencesModal(true)}
+      >
+        <Settings width={24} height={24} color="#2196F3" />
+      </TouchableOpacity>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -440,23 +609,7 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
           </View>
 
           {!hasContent ? (
-            <View style={styles.generateButtonContainer}>
-              <TouchableOpacity 
-                onPress={generateContent}
-                disabled={isLoading}
-              >
-                <LinearGradient colors={['#2196F3', '#13578D']} style={styles.generateButton}>
-                  {isLoading ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <AIoutlined width={24} height={24} />
-                      <Text style={styles.generateButtonText}>Сгенерировать рассказ</Text>
-                    </>
-                  )}
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+            <GenerateContentSection />
           ) : (
             <>
               {isExpanded ? (
@@ -628,6 +781,7 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
           )}
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
+      <PreferencesModal />
     </SafeAreaView>
   );
 };
@@ -643,29 +797,6 @@ const styles = StyleSheet.create({
   },
   mapComponent: {
     flex: 1,
-  },
-  generateButtonContainer: {
-    position: 'absolute',
-    bottom: 40,
-    width: '100%',
-    alignItems: 'center',
-  },
-  generateButton: {
-    backgroundColor: '#2196F3',
-    paddingVertical: 16,
-    paddingHorizontal: 30,
-    borderRadius: 20,
-    minWidth: 200,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    // elevation: 3, 
-  },
-  generateButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
   bottomContainer: {
     position: 'absolute',
@@ -785,6 +916,96 @@ const styles = StyleSheet.create({
   bottomSubBotContainerRightExpanded: {
     flexDirection: 'row',
     gap: 40,
+  },
+
+
+
+  generateContentContainer: {
+    position: 'absolute',
+    bottom: 40,
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  generateButton: {
+    flex: 1,
+    marginRight: 10,
+  },
+  generateButtonGradient: {
+    backgroundColor: '#2196F3',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  generateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  preferencesButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '70%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+    color: theme.colors.text,
+  },
+  preferencesList: {
+    paddingBottom: 20,
+  },
+  preferenceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.text2,
+  },
+  preferenceText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: theme.colors.text,
+  },
+  modalCloseButton: {
+    backgroundColor: '#2196F3',
+    padding: 16,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  modalCloseButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
