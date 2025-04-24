@@ -41,7 +41,7 @@ import AIfiled from '../../assets/images/icons/ai-filled-icon.svg';
 import { VolumeManager } from 'react-native-volume-manager';
 import Slider from '@react-native-community/slider';
 import LinearGradient from 'react-native-linear-gradient';
-import TrackPlayer, { State, useProgress, usePlaybackState } from 'react-native-track-player';
+import TrackPlayer, { State, useProgress, usePlaybackState, PlaybackTrackChangedEvent, Event } from 'react-native-track-player';
 import { Suggest  } from 'react-native-yamap';
 // import { GeoFigureType } from 'react-native-yamap/build/Search';
 import {ClassTimer} from './test.tsx';
@@ -51,6 +51,9 @@ import RNFS from 'react-native-fs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { addToFavorites, removeFromFavorites, saveAudioToHistory, isFavorite } from '../../services/AudioService.ts';
 import { useFocusEffect } from '@react-navigation/native';
+import DraggableFlatList from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+// import Animated from 'react-native-reanimated';
 
 Geocoder.init('500f7015-58c8-477a-aa0c-556ea02c2d9e');
 
@@ -59,11 +62,6 @@ type AudioData = {
   text: string;
   title: string;
 };
-// type AudioData = {
-//   path: string | null;
-//   text: string;
-//   title: string;
-// };
 
 type Preference = {
   id: string;
@@ -83,6 +81,7 @@ interface HomeScreenProps {
 function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(0);
+  const [volumeListenerInitialized, setVolumeListenerInitialized] = useState(false);
   const [containerHeight] = useState<number | 'auto'>('auto');
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const [previousVolume, setPreviousVolume] = useState<number>(volume);
@@ -113,6 +112,8 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
     { id: '11', name: 'Площади', selected: true },
     { id: '12', name: 'Улицы', selected: true },
   ]);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState<number>(0);
+  const [playlist, setPlaylist] = useState<AudioData[]>([]);
 
   const togglePreference = (id: string) => {
     setPreferences(prev => 
@@ -152,59 +153,13 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
     }
   }, [playbackState.state]);
 
-  // const fetchAudio = async (): Promise<AudioData> => {
-  //   try {
-  //     setIsLoading(true);
-  //     const jwtToken = await getToken();
-  //     if (!jwtToken) throw new Error('Токен отсутствует');
-
-  //     const response = await fetch('http://149.154.69.184:8080/api/process-json-noauth', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json', 'Authorization': jwtToken },
-  //       body: JSON.stringify({ json_data: await myInstance.fetchData()}),
-  //     });
-      
-  //     if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
-  //     const data = await response.json();
-
-  //     const filePath = `${RNFS.DocumentDirectoryPath}/audio_${Date.now()}.mp3`;
-  //     await RNFS.writeFile(filePath, data[0].audio, 'base64');
-      
-  //     const result: AudioData = {
-  //       path: filePath,
-  //       text: data[0].response,
-  //       title: data[0].place_name
-  //     };
-
-  //     const newItem = await saveAudioToHistory({
-  //       path: filePath,
-  //       text: data[0].response,
-  //       title: data[0].place_name
-  //     });
-
-  //     setCurrentAudioId(newItem.id);
-  //     const favoriteStatus = await isFavorite(newItem.id);
-  //     setIsAudioFavorite(favoriteStatus);
-      
-  //     setAudioData(result);
-  //     return result;
-
-  //   } catch (error) {
-  //     console.error('Ошибка загрузки аудио:', error);
-  //     throw error;
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
-  const fetchAudio = async (): Promise<AudioData> => {
+  const fetchAllAudio = async (): Promise<AudioData[]> => {
     try {
       setIsLoading(true);
       const jwtToken = await getToken();
       if (!jwtToken) throw new Error('Токен отсутствует');
-  
-      // 1. Отправляем запрос на сервер
-      const response = await fetch('http://149.154.69.184:8080/api/process-json-noauth', {
+
+      const response = await fetch('http://109.172.31.90:8080/api/process-json-noauth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': jwtToken },
         body: JSON.stringify({ json_data: await myInstance.fetchData() }),
@@ -212,45 +167,27 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
       
       if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
       const data = await response.json();
-  
-      // 2. Проверяем, что data — массив и не пустой
+
       if (!Array.isArray(data)) throw new Error('Ответ сервера не является массивом');
       if (data.length === 0) throw new Error('Нет данных в ответе сервера');
-  
-      // 3. Ищем первый элемент, где audio !== null
-      const validItem = data.find(item => item.audio !== null);
-      if (!validItem) throw new Error('Нет доступного аудио');
-  
-      // 4. Если audio есть — сохраняем в файл
-      let filePath = '';
-      if (validItem.audio) {
-        filePath = `${RNFS.DocumentDirectoryPath}/audio_${Date.now()}.mp3`;
-        await RNFS.writeFile(filePath, validItem.audio, 'base64');
-      }
-  
-      // 5. Формируем результат
-      const result: AudioData = {
-        path: filePath,
-        text: validItem.response,
-        title: validItem.place_name
-      };
-  
-      // 6. Сохраняем в историю (если нужно)
-      if (result.path === null) {
-        throw new Error('Нельзя сохранить в историю: аудиофайл отсутствует');
-      }
-      const newItem = await saveAudioToHistory({
-        path: result.path,
-        text: result.text,
-        title: result.title
-      });
-      setCurrentAudioId(newItem.id);
-      const favoriteStatus = await isFavorite(newItem.id);
-      setIsAudioFavorite(favoriteStatus);
+
+      const validItems = data.filter(item => item.audio !== null);
+      if (validItems.length === 0) throw new Error('Нет доступного аудио');
+
+      const audioItems: AudioData[] = [];
       
-      setAudioData(result);
-      return result;
-  
+      for (const item of validItems) {
+        const filePath = `${RNFS.DocumentDirectoryPath}/audio_${Date.now()}_${item.place_name}.mp3`;
+        await RNFS.writeFile(filePath, item.audio, 'base64');
+        
+        audioItems.push({
+          path: filePath,
+          text: item.response,
+          title: item.place_name
+        });
+      }
+
+      return audioItems;
     } catch (error) {
       console.error('Ошибка загрузки аудио:', error);
       throw error;
@@ -258,6 +195,80 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
       setIsLoading(false);
     }
   };
+
+  const initializePlaylist = async () => {
+    try {
+      const audioItems = await fetchAllAudio();
+      setPlaylist(audioItems);
+      setCurrentTrackIndex(0);
+      return audioItems;
+    } catch (error) {
+      console.error('Ошибка при создании плейлиста:', error);
+      return [];
+    }
+  };
+
+  const playCurrentTrack = async () => {
+    if (playlist.length === 0 || currentTrackIndex >= playlist.length) return;
+
+    const currentTrack = playlist[currentTrackIndex];
+    
+    try {
+      await TrackPlayer.reset();
+      await TrackPlayer.add({
+        id: `audio-track-${currentTrackIndex}`,
+        url: `file://${currentTrack.path}`,
+        title: currentTrack.title,
+        artist: 'Аудиогид',
+      });
+      
+      setAudioText(currentTrack.text);
+      setAudioTextTitle(currentTrack.title);
+      
+      const newItem = await saveAudioToHistory({
+        path: currentTrack.path,
+        text: currentTrack.text,
+        title: currentTrack.title
+      });
+      
+      setCurrentAudioId(newItem.id);
+      const favoriteStatus = await isFavorite(newItem.id);
+      setIsAudioFavorite(favoriteStatus);
+      
+      await TrackPlayer.play();
+      setIsPlaying(true);
+      setIsTrackEnded(false);
+    } catch (error) {
+      console.error('Ошибка воспроизведения:', error);
+    }
+  };
+
+  const handleTrackEnd = async () => {
+    if (currentTrackIndex < playlist.length - 1) {
+      // Переход к следующему треку
+      setCurrentTrackIndex(prev => prev + 1);
+    } else {
+      // Окончание плейлиста
+      setIsPlaying(false);
+      setIsTrackEnded(true);
+    }
+  };
+
+  useEffect(() => {
+    if (playlist.length > 0 && currentTrackIndex < playlist.length) {
+      playCurrentTrack();
+    }
+  }, [currentTrackIndex, playlist]);
+
+  useEffect(() => {
+    const listener = TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
+      handleTrackEnd();
+    });
+  
+    return () => {
+      listener.remove();
+    };
+  }, [currentTrackIndex, playlist]);
   
   const playAudio = async (): Promise<void> => {
     if (isPlaying && !isTrackEnded) {
@@ -266,50 +277,24 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
     }
 
     try {
-      // Если трек закончился, начинаем сначала
       if (isTrackEnded) {
-        await TrackPlayer.seekTo(0);
-        setIsTrackEnded(false);
-      }
-
-      // Если данные уже загружены, используем их
-      if (audioData?.path) {
-        const currentTrack = await TrackPlayer.getCurrentTrack();
-        
-        if (currentTrack === null) {
-          await TrackPlayer.reset();
-          await TrackPlayer.add({
-            id: 'audio-track',
-            url: `file://${audioData.path}`,
-            title: 'Аудиогид',
-            artist: 'Автор',
-          });
+        const audioItems = await initializePlaylist();
+        if (audioItems.length > 0) {
+          setCurrentTrackIndex(0);
         }
-        await TrackPlayer.play();
-        setIsPlaying(true);
         return;
       }
 
-      // Если данных нет, загружаем их
-      const newAudioData = await fetchAudio();
-      setAudioText(newAudioData.text);
-      setAudioTextTitle(newAudioData.title);
-      
-      if (newAudioData.path) {
-        const currentTrack = await TrackPlayer.getCurrentTrack();
-        
-        if (currentTrack === null) {
-          await TrackPlayer.reset();
-          await TrackPlayer.add({
-            id: 'audio-track',
-            url: `file://${newAudioData.path}`,
-            title: 'Аудиогид',
-            artist: 'Автор',
-          });
+      if (playlist.length === 0) {
+        const audioItems = await initializePlaylist();
+        if (audioItems.length > 0) {
+          setCurrentTrackIndex(0);
         }
-        await TrackPlayer.play();
-        setIsPlaying(true);
+        return;
       }
+
+      await TrackPlayer.play();
+      setIsPlaying(true);
     } catch (error) {
       console.error('Ошибка воспроизведения:', error);
     }
@@ -318,20 +303,9 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
   const generateNewAudio = async () => {
     try {
       setIsGeneratingNewAudio(true);
-      const newAudioData = await fetchAudio();
-      setAudioText(newAudioData.text);
-      setAudioTextTitle(newAudioData.title);
-      
-      if (newAudioData.path) {
-        await TrackPlayer.reset();
-        await TrackPlayer.add({
-          id: 'audio-track',
-          url: `file://${newAudioData.path}`,
-          title: 'Аудиогид',
-          artist: 'Автор',
-        });
-        await TrackPlayer.play();
-        setIsPlaying(true);
+      const audioItems = await initializePlaylist();
+      if (audioItems.length > 0) {
+        setCurrentTrackIndex(0);
       }
     } catch (error) {
       console.error('Ошибка генерации нового аудио:', error);
@@ -374,12 +348,29 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
   };
 
   const moveToStart = async (): Promise<void> => {
-    await TrackPlayer.seekTo(0);
+    if (playlist.length === 0) return;
+  
+    const position = await TrackPlayer.getPosition();
+    if (position < 3) {
+      if (currentTrackIndex > 0) {
+        setCurrentTrackIndex(currentTrackIndex - 1);
+      } else {
+        await TrackPlayer.seekTo(0);
+      }
+    } else {
+      await TrackPlayer.seekTo(0);
+    }
   };
 
   const moveToEnd = async (): Promise<void> => {
-    const duration = await TrackPlayer.getDuration();
-    await TrackPlayer.seekTo(duration);
+    if (playlist.length === 0) return;
+  
+    if (currentTrackIndex < playlist.length - 1) {
+      setCurrentTrackIndex(currentTrackIndex + 1);
+    } else {
+      const duration = await TrackPlayer.getDuration();
+      await TrackPlayer.seekTo(duration);
+    }
   };
 
   const muteVolume = async (): Promise<void> => {
@@ -448,28 +439,44 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
 
   const generateContent = async () => {
     try {
-      const {path, text, title} = await fetchAudio();
-      setAudioText(text);
-      setAudioTextTitle(title);
-      setAudioUrl(path);
+      const audioItems = await fetchAllAudio();
+      
+      if (audioItems.length === 0) {
+        Alert.alert('Аудио недоступно', 'Для этого места нет аудиозаписей.');
+        return;
+      }
+
+      setPlaylist(audioItems);
+      setCurrentTrackIndex(0);
       setHasContent(true);
     } catch (error) {
       Alert.alert('Ошибка', 'Не удалось загрузить данные');
     }
-  };
+};
 
   useEffect(() => {
     const setupVolumeManager = async () => {
       try {
         const currentVolume = await VolumeManager.getVolume();
         setVolume(currentVolume.volume || 0);
+        
+        if (!volumeListenerInitialized) {
+          const listener = VolumeManager.addVolumeListener((result) => {
+            setVolume(result.volume);
+          });
+          setVolumeListenerInitialized(true);
+          
+          return () => {
+            listener.remove();
+          };
+        }
       } catch (error) {
         console.error('Ошибка при получении громкости:', error);
       }
     };
-
+  
     setupVolumeManager();
-  }, []);
+  }, [volumeListenerInitialized]);
 
   const toggleFavorite = async () => {
     if (!currentAudioId) return;
@@ -514,7 +521,6 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
   useEffect(() => {
     if (route?.params?.removedFavoriteId && currentAudioId === route.params.removedFavoriteId) {
       setIsAudioFavorite(false);
-      // Очищаем параметр после обработки
       navigation.setParams({ removedFavoriteId: undefined });
     }
   }, [route?.params?.removedFavoriteId, currentAudioId]);
@@ -531,46 +537,72 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
     }, [currentAudioId])
   );
 
-  const PreferencesModal = () => (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={showPreferencesModal}
-      onRequestClose={() => setShowPreferencesModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Выберите предпочтения</Text>
-          
-          <FlatList
-            data={preferences}
-            keyExtractor={item => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity 
-                style={styles.preferenceItem} 
-                onPress={() => togglePreference(item.id)}
-              >
-                {item.selected ? (
-                  <CheckboxChecked width={24} height={24} />
-                ) : (
-                  <CheckboxUnchecked width={24} height={24} />
-                )}
-                <Text style={styles.preferenceText}>{item.name}</Text>
-              </TouchableOpacity>
-            )}
-            contentContainerStyle={styles.preferencesList}
-          />
-          
-          <TouchableOpacity 
-            style={styles.modalCloseButton}
-            onPress={() => setShowPreferencesModal(false)}
+  const PreferencesModal = () => {
+    const renderItem = ({ item, drag, isActive }: {
+      item: Preference;
+      drag: () => void;
+      isActive: boolean;
+    }) => {
+      return (
+        <Animated.View>
+          <TouchableOpacity
+            style={[
+              styles.preferenceItem,
+              isActive && styles.activePreferenceItem
+            ]}
+            onLongPress={drag}
+            onPress={() => togglePreference(item.id)}
+            activeOpacity={0.7}
           >
-            <Text style={styles.modalCloseButtonText}>Готово</Text>
+            <View style={styles.dragHandle}>
+              <Line width={24} height={24} color={theme.colors.text2} />
+            </View>
+            {/* {item.selected ? (
+              <CheckboxChecked width={24} height={24} />
+            ) : (
+              <CheckboxUnchecked width={24} height={24} />
+            )} */}
+            <Text style={styles.preferenceText}>{item.name}</Text>
           </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
+        </Animated.View>
+      );
+    };
+  
+    return (
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showPreferencesModal}
+        onRequestClose={() => setShowPreferencesModal(false)}
+      >
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalTitle}>Настройте предпочтения</Text>
+              <Text style={styles.modalSubtitle}>Удерживайте и перемещайте для изменения порядка</Text>
+              
+              <DraggableFlatList
+                data={preferences}
+                renderItem={renderItem}
+                keyExtractor={(item) => item.id}
+                onDragEnd={({ data }) => setPreferences(data)}
+                contentContainerStyle={styles.preferencesList}
+                activationDistance={10}
+                autoscrollSpeed={50}
+              />
+              
+              <TouchableOpacity 
+                style={styles.modalCloseButton}
+                onPress={() => setShowPreferencesModal(false)}
+              >
+                <Text style={styles.modalCloseButtonText}>Готово</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </GestureHandlerRootView>
+      </Modal>
+    );
+  };
 
   const GenerateContentSection = () => (
     <View style={styles.generateContentContainer}>
@@ -600,6 +632,58 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
     </View>
   );
 
+  const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+
+  const PlaylistModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={showPlaylistModal}
+      onRequestClose={() => setShowPlaylistModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.playlistModalContainer}>
+          <Text style={styles.playlistTitle}>Плейлист</Text>
+          
+          <FlatList
+            data={playlist}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({item, index}) => (
+              <TouchableOpacity 
+                style={[
+                  styles.playlistItem,
+                  index === currentTrackIndex && styles.currentTrackItem
+                ]}
+                onPress={() => {
+                  setCurrentTrackIndex(index);
+                  setShowPlaylistModal(false);
+                }}
+              >
+                <Text style={styles.playlistItemText}>
+                  {item.title || `Трек ${index + 1}`}
+                </Text>
+                {index === currentTrackIndex && isPlaying && (
+                  <View style={styles.playingIndicator}>
+                    <View style={styles.playingBar} />
+                    <View style={styles.playingBar} />
+                    <View style={styles.playingBar} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+          />
+          
+          <TouchableOpacity 
+            style={styles.closePlaylistButton}
+            onPress={() => setShowPlaylistModal(false)}
+          >
+            <Text style={styles.closePlaylistButtonText}>Закрыть</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -607,6 +691,30 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
           <View style={styles.mapComponent}>
             <Map />
           </View>
+
+          <TouchableOpacity 
+            style={styles.playlistButton}
+            onPress={() => setShowPlaylistModal(true)}
+          >
+            <Text style={styles.playlistButtonText}>Плейлист</Text>
+          </TouchableOpacity>
+
+
+          {hasContent && (
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => {
+                setHasContent(false);
+                setAudioText('');
+                setAudioTextTitle('');
+                setAudioUrl(null);
+                TrackPlayer.reset();
+                setIsPlaying(false);
+              }}
+            >
+              <Text style={styles.backButtonText}>Назад</Text>
+            </TouchableOpacity>
+          )}
 
           {!hasContent ? (
             <GenerateContentSection />
@@ -779,9 +887,10 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
               )}
             </>
           )}
+          <PlaylistModal />
+          <PreferencesModal />
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
-      <PreferencesModal />
     </SafeAreaView>
   );
 };
@@ -971,7 +1080,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
-    maxHeight: '70%',
+    // maxHeight: '70%',
   },
   modalTitle: {
     fontSize: 20,
@@ -980,6 +1089,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: theme.colors.text,
   },
+  modalSubtitle: {
+    fontSize: 14,
+    color: theme.colors.text2,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
   preferencesList: {
     paddingBottom: 20,
   },
@@ -987,8 +1102,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.text2,
+    backgroundColor: 'white',
+  },
+  // activePreferenceItem: {
+  //   backgroundColor: '#f5f5f5',
+  // },
+  activePreferenceItem: {
+    backgroundColor: '#f5f5f5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    transform: [{ scale: 1.01 }],
+  },
+  dragHandle: {
+    marginRight: 12,
+    opacity: 0.5,
   },
   preferenceText: {
     marginLeft: 12,
@@ -1003,6 +1136,97 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   modalCloseButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    zIndex: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2196F3',
+  },
+  backButtonText: {
+    color: '#2196F3',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+
+
+  //стили к плейлисту:
+  playlistButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#2196F3',
+  },
+  playlistButtonText: {
+    color: '#2196F3',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  playlistModalContainer: {
+    backgroundColor: 'white',
+    margin: 20,
+    borderRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  playlistTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+    color: theme.colors.text,
+  },
+  playlistItem: {
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  currentTrackItem: {
+    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+  },
+  playlistItemText: {
+    fontSize: 16,
+    color: theme.colors.text,
+    flex: 1,
+  },
+  playingIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 20,
+    marginLeft: 10,
+  },
+  playingBar: {
+    width: 3,
+    height: 15,
+    backgroundColor: '#2196F3',
+    marginHorizontal: 2,
+  },
+  closePlaylistButton: {
+    marginTop: 15,
+    padding: 12,
+    backgroundColor: '#2196F3',
+    borderRadius: 20,
+    alignItems: 'center',
+  },
+  closePlaylistButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
