@@ -101,7 +101,7 @@ export class ClassTimer {
         result.elements.forEach((element: OverpassElement) => elementsMap.set(element.id, element));
         const centerPoint: Point = { lat: 59.9537667, lon: 30.4121783 };
         const sortedResults = sortByDistance(result.elements, centerPoint,elementsMap);
-        
+        console.log("места надейны");
         return sortedResults;
       } catch (error) {
         console.error('Ошибка при выполнении запроса:', error);

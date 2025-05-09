@@ -34,6 +34,8 @@ import Slider from '@react-native-community/slider';
 import LinearGradient from 'react-native-linear-gradient';
 import TrackPlayer, { State, useProgress, usePlaybackState } from 'react-native-track-player';
 import { Suggest  } from 'react-native-yamap';
+import { Buffer } from 'buffer';
+import RNFS from 'react-native-fs';
 // import { GeoFigureType } from 'react-native-yamap/build/Search';
 import {ClassTimer} from './test.tsx';
 import { Geocoder } from 'react-native-yamap';
@@ -69,9 +71,28 @@ const HomeScreen: React.FC<{}> = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ json_data: await myInstance.fetchData()}),
       });
-      if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
+      // console.log("audio");
+      // const response = await fetch('http://149.154.69.184:8080/api/audio/generate', {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({message: "Проверка для сохранения аудио и декодирования"}),
+      // });
+      // if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
+      // console.log(response);
       const data = await response.json();
-      
+      // console.log(data);
+      // console.log(data[0].audio);
+      // const binaryData = Buffer.from(data).toString('base64');
+
+      //       // Сохраняем декодированные данные в файл
+          
+            const filePath = `${RNFS.DocumentDirectoryPath}/audio.mp3`;
+            console.log("Начинаем сохранение");
+            await RNFS.writeFile(filePath, data[0].audio, 'base64');
+      //       // const destinationPath = `${RNFS.DownloadDirectoryPath}/audio1.mp3`;
+      //       // await RNFS.writeFile(filePath, binaryData, 'utf8');
+      //       // console.log('Аудиофайл сохранён:', destinationPath);
+            console.log('Аудиофайл сохранён:', filePath);
       if (!data.url) throw new Error('Сервер не вернул ссылку на аудио');
 
       setAudioUrl(data.url);
