@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { setupPlayer } from './setupPlayer';
 import Navigate from './Navigate';
+import { ThemeProvider } from './ThemeContext';
 
 const App: React.FC = () => {
   useEffect(() => {
@@ -9,7 +10,11 @@ const App: React.FC = () => {
     });
   }, []);
 
-  return <Navigate />;
+  return (
+    <ThemeProvider>
+      <Navigate />
+    </ThemeProvider>
+  );
 };
 
 export default App;

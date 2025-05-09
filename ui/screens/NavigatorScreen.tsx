@@ -6,7 +6,7 @@ function NavigatorScreen(): React.JSX.Element {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.textContainer}>
-        <Text style={styles.textStyle}>Hello, World!</Text>
+        <Text style={styles.textStyle}>In development!</Text>
       </View>
     </SafeAreaView>
   );
