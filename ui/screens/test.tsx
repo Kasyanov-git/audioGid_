@@ -5,6 +5,10 @@ import { Alert } from 'react-native';
 import {sortByDistance,Point} from './SortResult'
 import { OverpassElement } from './OverpassElement';
 Geocoder.init('500f7015-58c8-477a-aa0c-556ea02c2d9e');
+export interface Coordinates {
+  lat: number;
+  lon: number;
+}
 export class ClassTimer {
     private timerId: string | number | NodeJS.Timeout | null | undefined;
     private readonly duration: number;
@@ -13,14 +17,14 @@ export class ClassTimer {
     constructor() {
       this.duration =10;
     }
-     start  ():void{
-      console.log("start ");
-      if (this.timerId === null) {
-        this.fetchData();
-         this.timerId=  setInterval(this.fetchData,10000)
-        console.log(this.timerId);
-      }
-    }
+    //  start  ():void{
+    //   console.log("start ");
+    //   if (this.timerId === null) {
+    //     this.fetchData();
+    //      this.timerId=  setInterval(this.fetchData,10000)
+    //     console.log(this.timerId);
+    //   }
+    // }
     async findPlace(){
       const userTestStatus: { lat: number, lon: number }[] = [
       {lat: 59.9537667, lon: 30.4121783},
@@ -66,28 +70,29 @@ export class ClassTimer {
           }
           this.id=(this.id+1);
     }
- fetchData = async () => {
-    console.log("run");
+    
+    fetchData = async (coords: Coordinates, radius: number = 100) => {
+      console.log("run");
       try {
+        const { lat, lon } = coords;
+        
         const query = `
           [out:json][timeout:25];
           (
-            
-            way(around:100, 59.9537667, 30.4121783)["highway"~"primary|secondary|tertiary|residential"];
-            
-            
+            way(around:${radius}, ${lat}, ${lon})["highway"~"primary|secondary|tertiary|residential"];
+            node(around:${radius}, ${lat}, ${lon})["building"];
+            way(around:${radius}, ${lat}, ${lon})["building"];
+            nwr(around:${radius}, ${lat}, ${lon})["amenity"~"arts_centre|fountain|planetarium|theatre|monastery"];
+            nwr(around:${radius}, ${lat}, ${lon})["tourism"~"aquarium|artwork|attraction|gallery|museum|theme_park|viewpoint|zoo|yes"];
+            nwr(around:${radius}, ${lat}, ${lon})["historic"];
+            node(around:${radius}, ${lat}, ${lon})["leisure"="park"];
+            way(around:${radius}, ${lat}, ${lon})["leisure"="park"];
           );
           out body;
           >;
           out skel qt;
         `;
-        // node(around:100, 59.9537667, 30.4121783)["building"];
-        // way(around:100, 59.9537667, 30.4121783)["building"];
-        // nwr(around:100, 59.9537667, 30.4121783)["amenity"~"arts_centre|fountain|planetarium|theatre|monastery"];
-        // nwr(around:100, 59.9537667, 30.4121783)["tourism"~"aquarium|artwork|attraction|gallery|museum|theme_park|viewpoint|zoo|yes"];
-        // nwr(around:100, 59.9537667, 30.4121783)["historic"];
-        // node(around:100, 59.9537667, 30.4121783)["leisure"="park"];
-        // way(around:100, 59.9537667, 30.4121783)["leisure"="park"];
+        
         const response = await fetch('https://overpass-api.de/api/interpreter', {
           method: 'POST',
           headers: {
@@ -109,7 +114,29 @@ export class ClassTimer {
         
       }
     };
+    // получения названия города
     
+    detectCity=async (coords: Coordinates)=> {
+      try{
+      const { lat, lon } = coords;
+      const query = `
+        [out:json];
+        is_in(${lat},${lon})->.a;
+        area.a[admin_level="6"][boundary=administrative][name];
+        out center;
+      `;
+      
+      const response = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `data=${encodeURIComponent(query)}`
+      });
+      const result = await response.json();
+      return await result.elements.tags["addr:region"];}
+      catch (error) {
+        console.error('Ошибка при выполнении запроса:', error);
+      }
+    }
     stop(): void {
       console.log(this.timerId);
       if (this.timerId !== null) {
