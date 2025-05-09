@@ -368,7 +368,7 @@ const HomeScreen: React.FC<{}> = () => {
 
   const fetchAllAudio = async (): Promise<AudioData[]> => {
   
-  const fetchAudio = async (): Promise<string | null> => {
+  
     try {
       setIsLoading(true);
       const jwtToken = await getToken();
@@ -527,59 +527,7 @@ const HomeScreen: React.FC<{}> = () => {
     } finally {
       setIsGeneratingNewAudio(false);
     }
-      if (parentPosition === null) {
-        return null;
-      }
-  
-      
-  
-      return new Promise<string | null>((resolve) => {
-        const ws = new WebSocket('ws://149.154.69.184:8080/ws/process-json-noauth');
-  
-        ws.onopen = () => {
-          console.log('WebSocket соединение установлено');
-          
-        };
-        
-        ws.onerror = (error) => {
-          console.error('WebSocket ошибка:', error);
-          Alert.alert('Ошибка', 'Проблемы с подключением к серверу');
-          resolve(null);
-        };
-  
-        ws.onclose = () => {
-          console.log('WebSocket соединение закрыто');
-        };
-  
-        ws.onmessage = async (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            const filePath = `${RNFS.DocumentDirectoryPath}/audio_${Date.now()}.mp3`;
-            console.log("Начинаем сохранение аудио через WebSocket");
-            
-            await RNFS.writeFile(filePath, data.audio, 'base64');
-            console.log('Аудиофайл сохранён:', filePath);
-            
-            if (!data.url) {
-              throw new Error('Сервер не вернул ссылку на аудио');
-            }
-  
-            setAudioUrl(data.url);
-            resolve(data.url);
-          } catch (error) {
-            console.error('Ошибка обработки сообщения:', error);
-            resolve(null);
-          } finally {
-            ws.close();
-          }
-        };
-      });
-    } catch (error) {
-      console.error('Ошибка загрузки аудио:', error);
-      Alert.alert('Ошибка', 'Не удалось получить аудиофайл');
-      return null;
-    }
-  };
+    
   //новый плеер
     //TODO у меня есть запуск алгоритма startTracking есть stopTracking, аудио формироуется в новом плеере, я не знаю как связать, можети у тебя будет идея
   const playAudioStream = async (audioData: string) => {
@@ -601,25 +549,25 @@ const HomeScreen: React.FC<{}> = () => {
       console.error('Ошибка воспроизведения:', error);
     }
   };
-    const playAudio = async (): Promise<void> => {
-    if (isPlaying) return;
+  //   const playAudio = async (): Promise<void> => {
+  //   if (isPlaying) return;
 
-    let url = audioUrl;
-    if (!url ) {
-      url = await fetchAudio();
-      if (!url) return;
-    }
+  //   let url = audioUrl;
+  //   if (!url ) {
+  //     url = await fetchAudio();
+  //     if (!url) return;
+  //   }
 
-    await TrackPlayer.reset();
-    await TrackPlayer.add({
-      id: 'audio-track',
-      url: url,
-      title: 'Аудиогид',
-      artist: 'Автор',
-    });
-    await TrackPlayer.play();
-    setIsPlaying(true);
-  };
+  //   await TrackPlayer.reset();
+  //   await TrackPlayer.add({
+  //     id: 'audio-track',
+  //     url: url,
+  //     title: 'Аудиогид',
+  //     artist: 'Автор',
+  //   });
+  //   await TrackPlayer.play();
+  //   setIsPlaying(true);
+  // };
 
   const pauseAudio = async (): Promise<void> => {
     await TrackPlayer.pause();
