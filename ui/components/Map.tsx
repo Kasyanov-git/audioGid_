@@ -1,17 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { StyleSheet, PermissionsAndroid, Platform, View, SafeAreaView, Text, Image, TouchableOpacity } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
-import { YaMap, Marker, Animation } from 'react-native-yamap';
+import { YaMap, Marker, Animation,CameraPosition } from 'react-native-yamap';
 // YaMap.init('b8022cf4-d327-4c28-aa94-7174b69d808f');
 import GeopositionIcon from '../../assets/images/icons/geoposition.svg';
 import { UIManager, findNodeHandle } from 'react-native';
+YaMap.init('b8022cf4-d327-4c28-aa94-7174b69d808f');
 
-
-function Map(): React.JSX.Element {
+type Props = {
+  onPositionChange: (pos: { lat: number; lon: number }) => void;
+};
+function Map({ onPositionChange }: Props): React.JSX.Element {
   const [currentPosition, setCurrentPosition] = useState<{ lat: number; lon: number } | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(15);
   const mapRef = useRef<any>(null);
 
+  
+  useEffect(() => {
+    if (currentPosition) {
+      onPositionChange(currentPosition); // Передаем данные в родителя
+    }
+  }, [currentPosition]);
   useEffect(() => {
     requestLocationPermission();
   }, []);
@@ -108,6 +117,13 @@ function Map(): React.JSX.Element {
     <View style={styles.mapContainer}>
       <YaMap
         ref={mapRef}
+      onCameraPositionChange={(e: any) => {
+        // Обновляем локальное состояние
+        setCurrentPosition({
+          lat: e.cameraPosition.point.lat,
+          lon: e.cameraPosition.point.lon
+        });
+      }}
         showUserPosition={true}
         userLocationIcon={require('../../assets/images/icons/geoposition.png')}
         scrollGesturesEnabled={true}
