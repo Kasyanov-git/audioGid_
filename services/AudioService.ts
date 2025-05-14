@@ -25,8 +25,26 @@ const HISTORY_KEY = '@audio_history';
 
   export const getAudioHistory = async (): Promise<HistoryItem[]> => {
     try {
-      const history = await AsyncStorage.getItem(HISTORY_KEY);
-      return history ? JSON.parse(history) : [];
+      const historyString = await AsyncStorage.getItem('@audio_history');
+      if (!historyString) return [];
+      
+      const history = JSON.parse(historyString) as HistoryItem[];
+      
+      // Проверяем существование файлов и фильтруем битые записи
+      const validHistory = await Promise.all(
+        history.map(async item => {
+          const fileExists = await RNFS.exists(item.path).catch(() => false);
+          return fileExists ? item : null;
+        })
+      );
+      
+      // Сохраняем очищенную историю
+      const filteredHistory = validHistory.filter(Boolean) as HistoryItem[];
+      if (filteredHistory.length !== history.length) {
+        await AsyncStorage.setItem('@audio_history', JSON.stringify(filteredHistory));
+      }
+      
+      return filteredHistory;
     } catch (error) {
       console.error('Error getting history:', error);
       return [];
@@ -36,15 +54,29 @@ const HISTORY_KEY = '@audio_history';
   export const deleteAudioFromHistory = async (id: string) => {
     try {
       const history = await getAudioHistory();
-      const newHistory = history.filter(item => item.id !== id);
-      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(newHistory));
-      
       const itemToDelete = history.find(item => item.id === id);
-      if (itemToDelete?.path) {
-        await RNFS.unlink(itemToDelete.path);
+      
+      if (itemToDelete) {
+        // Проверяем существование файла
+        const fileExists = await RNFS.exists(itemToDelete.path);
+        if (fileExists) {
+          await RNFS.unlink(itemToDelete.path);
+        }
+        
+        // Удаляем запись из истории
+        const updatedHistory = history.filter(item => item.id !== id);
+        await AsyncStorage.setItem('@audio_history', JSON.stringify(updatedHistory));
       }
     } catch (error) {
       console.error('Error deleting from history:', error);
+      throw error;
+    }
+  };
+
+  export const clearAllHistory = async () => {
+    try {
+      await AsyncStorage.removeItem('@audio_history');
+    } catch (error) {
       throw error;
     }
   };

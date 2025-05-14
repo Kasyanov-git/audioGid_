@@ -1542,22 +1542,44 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
   }, []);
 
   // 2. Инициализация WebSocket
+  // const initWebSocket = useCallback(() => {
+  //   wsRef.current = new WebSocket('ws://149.154.69.184:8080/ws/process-json-noauth');
+
+  //   wsRef.current.onopen = () => {
+  //     console.log('WebSocket подключен');
+  //   };
+
+  //   wsRef.current.onerror = (error) => {
+  //     console.error('WebSocket ошибка:', error);
+  //     setStatus('Ошибка подключения к серверу');
+  //   };
+  //   wsRef.current.onmessage = async (event) => {
+  //     const data = JSON.parse(event.data);
+  //     await playAudioStream(data.content);
+  //   } 
+  // }, []);
+
   const initWebSocket = useCallback(() => {
-    wsRef.current = new WebSocket('ws://149.154.69.184:8080/ws/process-json-noauth');
-
+    const endpoint = useAlternativeEndpoint 
+      ? 'ws://149.154.69.184:8080/ws/process-json-mistral' 
+      : 'ws://149.154.69.184:8080/ws/process-json-noauth';
+  
+    wsRef.current = new WebSocket(endpoint);
+  
     wsRef.current.onopen = () => {
-      console.log('WebSocket подключен');
+      console.log('WebSocket подключен к:', endpoint);
     };
-
+  
     wsRef.current.onerror = (error) => {
       console.error('WebSocket ошибка:', error);
       setStatus('Ошибка подключения к серверу');
     };
+  
     wsRef.current.onmessage = async (event) => {
       const data = JSON.parse(event.data);
       await playAudioStream(data.content);
-    } 
-  }, []);
+    };
+  }, [useAlternativeEndpoint]);
 
   // 3. Отправка данных на сервер
   const sendLocationData = useCallback(async () => {
@@ -1714,109 +1736,55 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
   }, [playbackState.state]);
 
 
-  // const fetchAllAudio = async (): Promise<AudioData[]> => {
-  //   try {
-  //     setIsLoading(true);
-  //     const jwtToken = await getToken();
-  //     if (!jwtToken) throw new Error('Токен отсутствует');
-
-  //     // Выбираем endpoint в зависимости от состояния переключателя
-  //     const endpoint = useAlternativeEndpoint 
-  //       ? 'http://109.172.31.90:8080/api/process-json-mistral' 
-  //       : 'http://109.172.31.90:8080/api/process-json-noauth';
-
-  //     const response = await fetch(endpoint, {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json', 'Authorization': jwtToken },
-  //       body: JSON.stringify({ json_data: await myInstance.fetchData() }),
-  //     });
-      
-  //     if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
-  //     const data = await response.json();
-
-  //     if (!Array.isArray(data)) throw new Error('Ответ сервера не является массивом');
-  //     if (data.length === 0) throw new Error('Нет данных в ответе сервера');
-
-  //     const validItems = data.filter(item => item.audio !== null);
-  //     if (validItems.length === 0) throw new Error('Нет доступного аудио');
-
-  //     const audioItems: AudioData[] = [];
-      
-  //     for (const item of validItems) {
-  //       const filePath = `${RNFS.DocumentDirectoryPath}/audio_${Date.now()}_${item.place_name}.mp3`;
-  //       await RNFS.writeFile(filePath, item.audio, 'base64');
-        
-  //       audioItems.push({
-  //         path: filePath,
-  //         text: item.response,
-  //         title: item.place_name
-  //       });
-  //     }
-
-  //     return audioItems;
-  //   } catch (error) {
-  //     console.error('Ошибка загрузки аудио:', error);
-  //     throw error;
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
-  const fetchAllAudio = async (): Promise<AudioData | null> => {
+  const fetchAllAudio = async (): Promise<AudioData[]> => {
     try {
       setIsLoading(true);
       const jwtToken = await getToken();
       if (!jwtToken) throw new Error('Токен отсутствует');
 
-      // Получаем текущие координаты из состояния компонента
-      if (!parentPosition) {
-        throw new Error('Координаты не определены');
-      }
-      
-      const requestCoords: Coordinates = {
-        lat: parentPosition.lat,
-        lon: parentPosition.lon
-      };
+     if (!parentPosition) {
+       throw new Error('Координаты не определены');
+     }
   
+     const requestCoords: Coordinates = {
+       lat: parentPosition.lat,
+       lon: parentPosition.lon
+     };
+
+      // Выбираем endpoint в зависимости от состояния переключателя
       const endpoint = useAlternativeEndpoint 
         ? 'http://109.172.31.90:8080/api/process-json-mistral' 
         : 'http://109.172.31.90:8080/api/process-json-noauth';
-  
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': jwtToken },
         body: JSON.stringify({ json_data: await myInstance.fetchData(requestCoords) }),
       });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(`Ошибка: ${response.status} - ${errorData?.message || 'Неизвестная ошибка сервера'}`);
-      }
-  
+      if (!response.ok) throw new Error(`Ошибка: ${response.status}`);
       const data = await response.json();
-  
+
       if (!Array.isArray(data)) throw new Error('Ответ сервера не является массивом');
       if (data.length === 0) throw new Error('Нет данных в ответе сервера');
-  
-      const validItem = data.find(item => 
-        item.audio !== null && 
-        item.audio !== undefined &&
-        item.place_name && 
-        typeof item.place_name === 'string' &&
-        !item.place_name.toLowerCase().startsWith('node') && // Новое условие
-        item.response
-      );
-  
-      if (!validItem) throw new Error('Не найдено подходящего аудио (проверьте place_name и audio)');
-  
-      const filePath = `${RNFS.DocumentDirectoryPath}/audio_${Date.now()}_${validItem.place_name.replace(/[^a-z0-9]/gi, '_')}.mp3`;
-      await RNFS.writeFile(filePath, validItem.audio, 'base64');
+
+      const validItems = data.filter(item => item.audio !== null);
+      if (validItems.length === 0) throw new Error('Нет доступного аудио');
+
+      const audioItems: AudioData[] = [];
       
-      return {
-        path: filePath,
-        text: validItem.response,
-        title: validItem.place_name
-      };
+      for (const item of validItems) {
+        const filePath = `${RNFS.DocumentDirectoryPath}/audio_${Date.now()}_${item.place_name}.mp3`;
+        await RNFS.writeFile(filePath, item.audio, 'base64');
+        
+        audioItems.push({
+          path: filePath,
+          text: item.response,
+          title: item.place_name
+        });
+      }
+
+      return audioItems;
     } catch (error) {
       console.error('Ошибка загрузки аудио:', error);
       throw error;
@@ -1825,44 +1793,106 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
     }
   };
 
-
-  // const initializePlaylist = async () => {
+  // const fetchAllAudio = async (): Promise<AudioData | null> => {
   //   try {
-  //     // Удаляем старые аудиофайлы
-  //     await Promise.all(
-  //       playlist.map(track => RNFS.unlink(track.path).catch(console.warn))
-  //     );
+  //     setIsLoading(true);
+  //     const jwtToken = await getToken();
+  //     if (!jwtToken) throw new Error('Токен отсутствует');
 
-  //     const audioItems = await fetchAllAudio();
-  //     setPlaylist(audioItems);
-  //     setCurrentTrackIndex(0);
-  //     return audioItems;
+  //     // Получаем текущие координаты из состояния компонента
+  //     if (!parentPosition) {
+  //       throw new Error('Координаты не определены');
+  //     }
+      
+  //     const requestCoords: Coordinates = {
+  //       lat: parentPosition.lat,
+  //       lon: parentPosition.lon
+  //     };
+  
+  //     const endpoint = useAlternativeEndpoint 
+  //       ? 'http://109.172.31.90:8080/api/process-json-mistral' 
+  //       : 'http://109.172.31.90:8080/api/process-json-noauth';
+  
+  //     const response = await fetch(endpoint, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json', 'Authorization': jwtToken },
+  //       body: JSON.stringify({ json_data: await myInstance.fetchData(requestCoords) }),
+  //     });
+      
+  //     if (!response.ok) {
+  //       const errorData = await response.json().catch(() => null);
+  //       throw new Error(`Ошибка: ${response.status} - ${errorData?.message || 'Неизвестная ошибка сервера'}`);
+  //     }
+  
+  //     const data = await response.json();
+  
+  //     if (!Array.isArray(data)) throw new Error('Ответ сервера не является массивом');
+  //     if (data.length === 0) throw new Error('Нет данных в ответе сервера');
+  
+  //     const validItem = data.find(item => 
+  //       item.audio !== null && 
+  //       item.audio !== undefined &&
+  //       item.place_name && 
+  //       typeof item.place_name === 'string' &&
+  //       !item.place_name.toLowerCase().startsWith('node') && // Новое условие
+  //       item.response
+  //     );
+  
+  //     if (!validItem) throw new Error('Не найдено подходящего аудио (проверьте place_name и audio)');
+  
+  //     const filePath = `${RNFS.DocumentDirectoryPath}/audio_${Date.now()}_${validItem.place_name.replace(/[^a-z0-9]/gi, '_')}.mp3`;
+  //     await RNFS.writeFile(filePath, validItem.audio, 'base64');
+      
+  //     return {
+  //       path: filePath,
+  //       text: validItem.response,
+  //       title: validItem.place_name
+  //     };
   //   } catch (error) {
-  //     console.error('Ошибка при создании плейлиста:', error);
-  //     return [];
+  //     console.error('Ошибка загрузки аудио:', error);
+  //     throw error;
+  //   } finally {
+  //     setIsLoading(false);
   //   }
   // };
 
   const initializePlaylist = async () => {
     try {
-      // Удаляем старый аудиофайл
-      if (playlist.length > 0) {
-        await RNFS.unlink(playlist[0].path).catch(console.warn);
-      }
+      // Удаляем старые аудиофайлы
+      await Promise.all(
+        playlist.map(track => RNFS.unlink(track.path).catch(console.warn))
+      );
 
-      const audioItem = await fetchAllAudio();
-      if (!audioItem) return [];
-
-      // Создаем плейлист с одним треком
-      const singleItemPlaylist = [audioItem];
-      setPlaylist(singleItemPlaylist);
+      const audioItems = await fetchAllAudio();
+      setPlaylist(audioItems);
       setCurrentTrackIndex(0);
-      return singleItemPlaylist;
+      return audioItems;
     } catch (error) {
       console.error('Ошибка при создании плейлиста:', error);
       return [];
     }
   };
+
+  // const initializePlaylist = async () => {
+  //   try {
+  //     // Удаляем старый аудиофайл
+  //     if (playlist.length > 0) {
+  //       await RNFS.unlink(playlist[0].path).catch(console.warn);
+  //     }
+
+  //     const audioItem = await fetchAllAudio();
+  //     if (!audioItem) return [];
+
+  //     // Создаем плейлист с одним треком
+  //     const singleItemPlaylist = [audioItem];
+  //     setPlaylist(singleItemPlaylist);
+  //     setCurrentTrackIndex(0);
+  //     return singleItemPlaylist;
+  //   } catch (error) {
+  //     console.error('Ошибка при создании плейлиста:', error);
+  //     return [];
+  //   }
+  // };
 
   const playCurrentTrack = async () => {
     if (playlist.length === 0 || currentTrackIndex >= playlist.length) return;
@@ -1929,35 +1959,35 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
     };
   }, [currentTrackIndex, playlist]);
   
-  const playAudio = async (): Promise<void> => {
-    if (isPlaying && !isTrackEnded) {
-      await pauseAudio();
-      return;
-    }
+  // const playAudio = async (): Promise<void> => {
+  //   if (isPlaying && !isTrackEnded) {
+  //     await pauseAudio();
+  //     return;
+  //   }
 
-    try {
-      if (isTrackEnded) {
-        const audioItems = await initializePlaylist();
-        if (audioItems.length > 0) {
-          setCurrentTrackIndex(0);
-        }
-        return;
-      }
+  //   try {
+  //     if (isTrackEnded) {
+  //       const audioItems = await initializePlaylist();
+  //       if (audioItems.length > 0) {
+  //         setCurrentTrackIndex(0);
+  //       }
+  //       return;
+  //     }
 
-      if (playlist.length === 0) {
-        const audioItems = await initializePlaylist();
-        if (audioItems.length > 0) {
-          setCurrentTrackIndex(0);
-        }
-        return;
-      }
+  //     if (playlist.length === 0) {
+  //       const audioItems = await initializePlaylist();
+  //       if (audioItems.length > 0) {
+  //         setCurrentTrackIndex(0);
+  //       }
+  //       return;
+  //     }
 
-      await TrackPlayer.play();
-      setIsPlaying(true);
-    } catch (error) {
-      console.error('Ошибка воспроизведения:', error);
-    }
-  };
+  //     await TrackPlayer.play();
+  //     setIsPlaying(true);
+  //   } catch (error) {
+  //     console.error('Ошибка воспроизведения:', error);
+  //   }
+  // };
 
   const generateNewAudio = async () => {
     try {
@@ -1973,7 +2003,7 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
     }
   }
   //новый плеер
-    //TODO у меня есть запуск алгоритма startTracking есть stopTracking, аудио формироуется в новом плеере, я не знаю как связать, можети у тебя будет идея
+    //TODO у меня есть запуск алгоритма startTracking есть stopTracking, аудио формируется в новом плеере, я не знаю как связать, можети у тебя будет идея
   const playAudioStream = async (audioData: string) => {
     try {
       const filePath = `${RNFS.DocumentDirectoryPath}/audio_${Date.now()}.mp3`;
@@ -1992,6 +2022,22 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
     } catch (error) {
       console.error('Ошибка воспроизведения:', error);
     }
+  };
+
+  const playAudio = async () => {
+    if (isPlaying) {
+      await pauseAudio();
+      stopTracking(); // Остановить трекинг при паузе
+      return;
+    }
+  
+    if (isTrackEnded || playlist.length === 0) {
+      await initializePlaylist();
+    }
+  
+    await TrackPlayer.play();
+    setIsPlaying(true);
+    startTracking(); // Запустить трекинг при воспроизведении
   };
   //   const playAudio = async (): Promise<void> => {
   //   if (isPlaying) return;
@@ -2136,48 +2182,48 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
     setShowTextManually(!showTextManually);
   };
 
-  // const generateContent = async () => {
-  //   try {
-  //     const audioItems = await fetchAllAudio();
-      
-  //     if (audioItems.length === 0) {
-  //       Alert.alert('Аудио недоступно', 'Для этого места нет аудиозаписей.');
-  //       return;
-  //     }
-
-  //     setPlaylist(audioItems);
-  //     setCurrentTrackIndex(0);
-  //     setHasContent(true);
-  //   } catch (error) {
-  //     Alert.alert('Ошибка', 'Не удалось загрузить данные');
-  //   }
-  // };
-
   const generateContent = async () => {
     try {
-      const audioItem = await fetchAllAudio();
+      const audioItems = await fetchAllAudio();
       
-      if (!audioItem) {
-        Alert.alert('Аудио недоступно', 'Не удалось получить аудиозапись.');
+      if (audioItems.length === 0) {
+        Alert.alert('Аудио недоступно', 'Для этого места нет аудиозаписей.');
         return;
       }
-  
-      // Удаляем предыдущий файл, если он существует
-      if (playlist.length > 0) {
-        await RNFS.unlink(playlist[0].path).catch(console.warn);
-      }
-  
-      setPlaylist([audioItem]);
+
+      setPlaylist(audioItems);
       setCurrentTrackIndex(0);
       setHasContent(true);
-      
-      // Автоматически начинаем воспроизведение
-      await playCurrentTrack();
     } catch (error) {
       Alert.alert('Ошибка', 'Не удалось загрузить данные');
-      console.error('Ошибка в generateContent:', error);
     }
   };
+
+  // const generateContent = async () => {
+  //   try {
+  //     const audioItem = await fetchAllAudio();
+      
+  //     if (!audioItem) {
+  //       Alert.alert('Аудио недоступно', 'Не удалось получить аудиозапись.');
+  //       return;
+  //     }
+  
+  //     // Удаляем предыдущий файл, если он существует
+  //     if (playlist.length > 0) {
+  //       await RNFS.unlink(playlist[0].path).catch(console.warn);
+  //     }
+  
+  //     setPlaylist([audioItem]);
+  //     setCurrentTrackIndex(0);
+  //     setHasContent(true);
+      
+  //     // Автоматически начинаем воспроизведение
+  //     await playCurrentTrack();
+  //   } catch (error) {
+  //     Alert.alert('Ошибка', 'Не удалось загрузить данные');
+  //     console.error('Ошибка в generateContent:', error);
+  //   }
+  // };
 
   useEffect(() => {
     const setupVolumeManager = async () => {

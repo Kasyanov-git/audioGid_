@@ -117,13 +117,15 @@ function Map({ onPositionChange }: Props): React.JSX.Element {
     <View style={styles.mapContainer}>
       <YaMap
         ref={mapRef}
-      onCameraPositionChange={(e: any) => {
-        // Обновляем локальное состояние
-        setCurrentPosition({
-          lat: e.cameraPosition.point.lat,
-          lon: e.cameraPosition.point.lon
-        });
-      }}
+        onCameraPositionChange={(e: any) => {
+          // Проверяем, что cameraPosition и point существуют
+          if (e?.cameraPosition?.point) {
+            setCurrentPosition({
+              lat: e.cameraPosition.point.lat,
+              lon: e.cameraPosition.point.lon
+            });
+          }
+        }}
         showUserPosition={true}
         userLocationIcon={require('../../assets/images/icons/geoposition.png')}
         scrollGesturesEnabled={true}

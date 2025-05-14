@@ -6,6 +6,8 @@ import PlayIcon from '../../../assets/images/icons/play.svg';
 import DeleteIcon from '../../../assets/images/icons/delete-icon.svg';
 import ChevronLeft from '../../../assets/images/icons/chevron-left.svg';
 import { theme } from "../../../theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import RNFS from 'react-native-fs';
 
 interface HistoryScreenProps {
   navigation: any;
@@ -30,16 +32,40 @@ function HistoryScreen({ navigation }: HistoryScreenProps): React.JSX.Element {
     return unsubscribe;
   }, [navigation]);
 
+  // const audioDelete = async (id: string) => {
+  //   try {
+  //     await deleteAudioFromHistory(id);
+  //     setHistory(prev => prev.filter(item => item.id !== id));
+  //   } catch (error) {
+  //     console.error('Error deleting:', error);
+  //     // Пытаемся удалить запись даже если файл не найден
+  //     setHistory(prev => prev.filter(item => item.id !== id));
+  //   }
+  // };
+
   const audioDelete = async (id: string) => {
     try {
       await deleteAudioFromHistory(id);
       setHistory(prev => prev.filter(item => item.id !== id));
+      Alert.alert("Успешно", "Запись удалена из истории");
     } catch (error) {
       console.error('Error deleting:', error);
+      Alert.alert(
+        "Частичное удаление",
+        "Файл не найден, но запись удалена из истории",
+        [{ text: "OK", onPress: () => 
+          setHistory(prev => prev.filter(item => item.id !== id))
+        }]
+      );
     }
   };
 
   const clearAllHistory = async () => {
+    if (history.length === 0) {
+      Alert.alert("История уже пуста");
+      return;
+    }
+  
     Alert.alert(
       "Очистить историю",
       "Вы уверены, что хотите удалить всю историю?",
@@ -52,12 +78,22 @@ function HistoryScreen({ navigation }: HistoryScreenProps): React.JSX.Element {
           text: "Очистить", 
           onPress: async () => {
             try {
-              // Удаляем все записи по одной (или можно добавить метод для массового удаления в AudioService)
-              await Promise.all(history.map(item => deleteAudioFromHistory(item.id)));
+              // Удаляем только существующие файлы
+              await Promise.all(history.map(async item => {
+                try {
+                  const exists = await RNFS.exists(item.path);
+                  if (exists) await RNFS.unlink(item.path);
+                } catch (fileError) {
+                  console.warn(`Не удалось удалить файл ${item.path}:`, fileError);
+                }
+              }));
+              
+              // Очищаем всю историю
+              await AsyncStorage.removeItem('@audio_history');
               setHistory([]);
             } catch (error) {
               console.error('Ошибка при очистке истории:', error);
-              Alert.alert("Ошибка", "Не удалось очистить историю");
+              Alert.alert("Ошибка", "Не удалось полностью очистить историю");
             }
           }
         }
@@ -93,6 +129,14 @@ function HistoryScreen({ navigation }: HistoryScreenProps): React.JSX.Element {
           <ChevronLeft width={24} height={24} color={theme.colors.text} />
         </TouchableOpacity>
         <Text style={styles.title}>История</Text>
+        {history.length > 0 && (
+          <TouchableOpacity 
+            onPress={clearAllHistory}
+            style={styles.clearButton}
+          >
+            <Text style={styles.clearButtonText}>Очистить все</Text>
+          </TouchableOpacity>
+        )}
       </View>
       
       {loading ? (
@@ -173,6 +217,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 15,
+  },
+  clearButton: {
+    marginLeft: 'auto',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#FF3B30',
+    borderRadius: 15,
+  },
+  clearButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });
 
