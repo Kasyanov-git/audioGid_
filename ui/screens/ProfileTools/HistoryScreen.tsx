@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View, FlatList, Image } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, FlatList, Image, Alert } from "react-native";
 import { HistoryItem } from '../../../types/types';
 import { getAudioHistory, deleteAudioFromHistory } from "../../../services/AudioService";
 import PlayIcon from '../../../assets/images/icons/play.svg';
@@ -37,6 +37,32 @@ function HistoryScreen({ navigation }: HistoryScreenProps): React.JSX.Element {
     } catch (error) {
       console.error('Error deleting:', error);
     }
+  };
+
+  const clearAllHistory = async () => {
+    Alert.alert(
+      "Очистить историю",
+      "Вы уверены, что хотите удалить всю историю?",
+      [
+        {
+          text: "Отмена",
+          style: "cancel"
+        },
+        { 
+          text: "Очистить", 
+          onPress: async () => {
+            try {
+              // Удаляем все записи по одной (или можно добавить метод для массового удаления в AudioService)
+              await Promise.all(history.map(item => deleteAudioFromHistory(item.id)));
+              setHistory([]);
+            } catch (error) {
+              console.error('Ошибка при очистке истории:', error);
+              Alert.alert("Ошибка", "Не удалось очистить историю");
+            }
+          }
+        }
+      ]
+    );
   };
 
   const renderItem = ({ item }: { item: HistoryItem }) => (
