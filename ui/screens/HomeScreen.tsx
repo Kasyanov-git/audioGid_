@@ -1767,6 +1767,16 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
       setIsLoading(true);
       const jwtToken = await getToken();
       if (!jwtToken) throw new Error('Токен отсутствует');
+
+      // Получаем текущие координаты из состояния компонента
+      if (!parentPosition) {
+        throw new Error('Координаты не определены');
+      }
+      
+      const requestCoords: Coordinates = {
+        lat: parentPosition.lat,
+        lon: parentPosition.lon
+      };
   
       const endpoint = useAlternativeEndpoint 
         ? 'http://109.172.31.90:8080/api/process-json-mistral' 
@@ -1775,7 +1785,7 @@ function HomeScreen({ navigation, route }: HomeScreenProps): React.JSX.Element {
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': jwtToken },
-        body: JSON.stringify({ json_data: await myInstance.fetchData() }),
+        body: JSON.stringify({ json_data: await myInstance.fetchData(requestCoords) }),
       });
       
       if (!response.ok) {
