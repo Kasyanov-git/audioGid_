@@ -1,0 +1,48 @@
+const [responseText, setResponseText] = useState('');
+  // Тестовая функция для саджеста(выводит очень далеко, посмотреть настрйоку)
+  // const find = async (query: string) => {
+  //   console.log(query);
+  //   const suggestions = await Suggest.suggest(query,{userPosition: {lat: 59.9537667, lon: 30.4121783}});
+  //   console.log(suggestions)
+  //   Suggest.reset();
+  // };
+  // const handlePressTest = async () => {
+  //   try {
+  //     //Поиск по тексту(ищет как раз метки в близи)
+  //     const searchResult = await Search.searchText(
+  //       'Памятники',
+  //       { type: GeoFigureType.POINT, value: {lat: 59.9537667, lon: 30.4121783}},
+  //       { disableSpellingCorrection: true, geometry: true },
+  //     );
+  //     console.log(searchResult);
+  //     const response = await fetch('http://localhost:5555/ask', {  //ЗДЕСЬ МОЖНО ПОМЕНЯТЬ IP СЕРВЕРА
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+
+  //       body: JSON.stringify({
+  //         searchResult,
+  //       }),
+  //     });
+
+  //     if (!response.ok) {
+  //       throw new Error(`HTTP Error: ${response.status}`);
+  //     }
+
+  //     const data = await response.json();
+  //     setResponseText(data);
+
+  //     console.log('Ответ от сервера:', data);
+
+  //     if (data.message) {
+  //       setResponseText(data.message);
+  //       setIsVisible(true);
+  //     } else {
+  //       throw new Error('Ответ не содержит поля "message"');
+  //     }
+  //   } catch (error) {
+  //     console.error('Ошибка при запросе:', error);
+  //     Alert.alert('Ошибка', 'Не удалось получить рассказ');
+  //   }
+  // };
